@@ -1,3 +1,4 @@
+from datetime import datetime
 from enum import Enum
 from abc import ABC, abstractmethod
 import tkinter as tk
@@ -11,10 +12,15 @@ class FieldType(Enum):
 
 
 class FormField(ABC):
-    def __init__(self, name: str, field_type: FieldType, required: bool):
+    def __init__(
+        self, name: str, field_type: FieldType, required: bool, form: tk.Frame
+    ):
         self.name = name
         self.field_type = field_type
         self.required = required
+        self.form = form
+        self.tk_field = None
+        self.error = None
 
     def get_name(self) -> str:
         return self.name
@@ -25,25 +31,51 @@ class FormField(ABC):
     def is_required(self) -> bool:
         return self.required
 
-    def validate(self, value: str) -> bool:
+    def get_form(self) -> tk.Frame:
+        return self.form
+
+    def get_value(self):
+        return self.get_tk_field().get()
+
+    def validate(self) -> bool:
+        value = self.get_value()
         if self.required and not value:
             return (False, "Required field")
-        return self.validate_value(value)
+        valid, message = self.validate_value(value)
+        if not valid:
+            self.error = message
+        return (valid, message)
+
+    def get_tk_field(self):
+        if self.tk_field:
+            return self.tk_field
+        self.tk_field = self.get_tk_field_template()
+        return self.tk_field
+
+    def get_error(self) -> str:
+        return self.error
+
+    def clear(self):
+        self.get_tk_field().delete(0, "end")
 
     @abstractmethod
-    def validate_value(self, value: str) -> bool:
-        pass
+    def validate_value(self, value: str) -> (bool, str):
+        """
+        Should return a tuple of (bool, str)
+        bool: True if valid, False if not
+        str: Error message if invalid, None if valid
+        """
 
     @abstractmethod
-    def get_tk_field(self, form: tk.Frame):
+    def get_tk_field_template(self):
         pass
 
 
 class DateField(FormField):
-    def __init__(self, name: str, required: bool):
-        super().__init__(name, FieldType.DATE, required)
+    def __init__(self, name: str, required: bool, form: tk.Frame):
+        super().__init__(name, FieldType.DATE, required, form)
 
-    def validate_value(self, value: str) -> bool:
+    def validate_value(self, value: str) -> (bool, str):
         try:
             date = datetime.strptime(value, "%Y-%m-%d")
             today = datetime.now()
@@ -53,52 +85,56 @@ class DateField(FormField):
         except ValueError:
             return (False, "Invalid date format, must be YYYY-MM-DD")
 
-    def get_tk_field(self, form: tk.Frame):
-        tk_field = tk.Entry(form)
-        return tk_field
+    def get_tk_field_template(self):
+        return tk.Entry(self.get_form())
 
 
 class TextField(FormField):
-    def __init__(self, name: str, required: bool):
-        super().__init__(name, FieldType.TEXT, required)
+    def __init__(self, name: str, required: bool, form: tk.Frame):
+        super().__init__(name, FieldType.TEXT, required, form)
 
-    def validate_value(self, value: str) -> bool:
+    def validate_value(self, value: str) -> (bool, str):
         return (True, None)
 
-    def get_tk_field(self, form: tk.Frame):
-        tk_field = tk.Entry(form)
-        return tk_field
+    def get_tk_field_template(self):
+        return tk.Entry(self.get_form())
 
 
 class NumberField(FormField):
-    def __init__(self, name: str, required: bool):
-        super().__init__(name, FieldType.NUMBER, required)
+    def __init__(self, name: str, required: bool, form: tk.Frame):
+        super().__init__(name, FieldType.NUMBER, required, form)
 
-    def validate_value(self, value: str) -> bool:
+    def validate_value(self, value: str) -> (bool, str):
         valid = value.replace(".", "").isdigit()
         if not valid:
             return (False, "Invalid number")
         return (True, None)
 
-    def get_tk_field(self, form: tk.Frame):
-        tk_field = tk.Entry(form)
-        return tk_field
+    def get_tk_field_template(self):
+        return tk.Entry(self.get_form())
 
 
 class DropdownField(FormField):
-    def __init__(self, name: str, required: bool, options: list[str]):
-        super().__init__(name, FieldType.DROPDOWN, required)
+    def __init__(self, name: str, required: bool, options: list[str], form: tk.Frame):
+        super().__init__(name, FieldType.DROPDOWN, required, form)
         self.options = options
+        self.clicked = tk.StringVar()
 
-    def validate_value(self, value: str) -> bool:
+    def validate_value(self, value: str) -> (bool, str):
         valid = value in self.options
         if not valid:
             return (False, "Invalid option")
         return (True, None)
 
-    def get_tk_field(self, form: tk.Frame):
-        tk_field = tk.OptionMenu(form, *self.options)
-        return tk_field
+    def get_tk_field_template(self):
+        self.clicked.set(self.options[0])
+        return tk.OptionMenu(self.form, self.clicked, *self.options)
+
+    def get_value(self) -> str:
+        return self.clicked.get()
 
     def get_options(self) -> list[str]:
         return self.options
+
+    def clear(self):
+        self.clicked.set(self.options[0])
