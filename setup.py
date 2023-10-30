@@ -2,7 +2,7 @@
     Setup database
 """
 
-from db.dbmanager import DBManager
+from src.db.dbmanager import DBManager
 
 TABLES = [
     "transactions",

@@ -4,7 +4,9 @@ from sqlite3 import Error
 
 # class to handle database
 class DBManager:
-    DATABASE = 'db/db.sqlite3'
+    DATABASE = 'db.sqlite3'
+    SCHEMA = 'src/db/schema.sql'
+
     def __init__(self):
         self.conn = None
         self.db = DBManager.DATABASE
@@ -14,7 +16,7 @@ class DBManager:
             print(e)
 
     def setup(self):
-        with open('db/schema.sql', 'r') as f:
+        with open(DBManager.SCHEMA, 'r') as f:
             schema = f.read()
             cur = self.conn.cursor()
             cur.executescript(schema)
