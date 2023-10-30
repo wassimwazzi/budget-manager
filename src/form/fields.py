@@ -129,7 +129,10 @@ class DropdownField(FormField):
         return (True, None)
 
     def get_tk_field_template(self):
-        self.clicked.set(self.options[0])
+        if self.options:
+            self.clicked.set(self.options[0])
+        else:
+            self.options.append("")
         return tk.OptionMenu(self.form, self.clicked, *self.options)
 
     def get_value(self) -> str:
@@ -148,9 +151,9 @@ class UploadFileField(FormField):
         name: str,
         required: bool,
         form: tk.Frame,
-        file_types: list[(str, str)] = [("All", "*.*")],
+        file_types: list[(str, str)] = None,
     ):
-        self.file_types = file_types
+        self.file_types = file_types or [("All", "*.*")]
         self.uploaded_file_path = None
         super().__init__(name, FieldType.UPLOAD_FILE, required, form)
 

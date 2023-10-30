@@ -111,14 +111,17 @@ class TransactionForm(ABForm):
         self.master = master
         self.form = tk.Frame(self.master)
         self.form.pack(pady=20)
+        self.db = DBManager()
+        self.categories = [
+            c[0] for c in self.db.select("SELECT category FROM categories", [])
+        ]
         self.form_fields = [
             DateField("Date (YYYY-MM-DD)", True, self.form),
             TextField("Description", True, self.form),
             NumberField("Amount", True, self.form),
             TextField("Code", False, self.form),
-            DropdownField("Category", True, ["Income", "Expense"], self.form),
+            DropdownField("Category", True, self.categories, self.form),
         ]
-        self.db = DBManager()
         super().__init__(self.form, self.form_fields)
         super().create_form()
 
