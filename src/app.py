@@ -1,8 +1,10 @@
 import tkinter as tk
-from src.form.form import TransactionForm
+from src.form.form import TransactionForm, TransactionsCsvForm
+
 
 def run():
     root = tk.Tk()
-    form = TransactionForm(root)
+    TransactionForm(root)
+    TransactionsCsvForm(root)
 
     root.mainloop()

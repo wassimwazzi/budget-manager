@@ -2,6 +2,7 @@ from datetime import datetime
 from enum import Enum
 from abc import ABC, abstractmethod
 import tkinter as tk
+from tkinter import filedialog
 
 
 class FieldType(Enum):
@@ -9,6 +10,7 @@ class FieldType(Enum):
     TEXT = "text"
     NUMBER = "number"
     DROPDOWN = "dropdown"
+    UPLOAD_FILE = "upload_file"
 
 
 class FormField(ABC):
@@ -138,3 +140,44 @@ class DropdownField(FormField):
 
     def clear(self):
         self.clicked.set(self.options[0])
+
+
+class UploadFileField(FormField):
+    def __init__(
+        self,
+        name: str,
+        required: bool,
+        form: tk.Frame,
+        file_types: list[(str, str)] = [("All", "*.*")],
+    ):
+        self.file_types = file_types
+        self.uploaded_file_path = None
+        super().__init__(name, FieldType.UPLOAD_FILE, required, form)
+
+    def validate_value(self, value: str) -> (bool, str):
+        # Validation is done in the upload_file method
+        return (True, None)
+
+    def get_tk_field_template(self, **kwargs):
+        return tk.Button(
+            self.form,
+            text="Upload file",
+            command=self.upload_file,
+            font=("Arial", 12),
+            fg="black",
+            **kwargs,
+        )
+
+    def upload_file(self):
+        file_path = filedialog.askopenfilename(
+            title="Select file", filetypes=self.file_types
+        )
+        self.get_tk_field().config(text=file_path, fg="black")
+        self.uploaded_file_path = file_path
+
+    def get_value(self) -> str:
+        return self.uploaded_file_path
+
+    def clear(self):
+        self.uploaded_file_path = None
+        self.get_tk_field().config(text="Upload file", fg="black")

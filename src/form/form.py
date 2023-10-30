@@ -1,6 +1,13 @@
 import tkinter as tk
 from abc import ABC, abstractmethod
-from src.form.fields import FormField, DateField, TextField, NumberField, DropdownField
+from src.form.fields import (
+    FormField,
+    DateField,
+    TextField,
+    NumberField,
+    DropdownField,
+    UploadFileField,
+)
 from src.db.dbmanager import DBManager
 
 
@@ -13,7 +20,6 @@ class ABForm(ABC):
     VALID_COLOR = "SystemButtonFace"
 
     def __init__(self, form: tk.Frame, form_fields: list[FormField]):
-        print("Form init")
         self.form_fields = form_fields
         self.error_labels = [
             tk.Label(form, text="", font=("Arial", 10), fg=ABForm.ERROR_COLOR)
@@ -112,3 +118,22 @@ class TransactionForm(ABForm):
             """,
             data,
         )
+
+
+class TransactionsCsvForm(ABForm):
+    def __init__(self, master: tk.Tk):
+        self.master = master
+        self.form = tk.Frame(self.master)
+        self.form.pack(pady=20)
+        self.form_fields = [
+            UploadFileField("CSV File", True, self.form, [("CSV Files", "*.csv")]),
+        ]
+        super().__init__(self.form, self.form_fields)
+        super().create_form()
+
+    def on_success(self):
+        data = self.form_fields[0].get_value()
+        self.db = DBManager()
+        with open(data, "r") as f:
+            for line in f:
+                print(line)
