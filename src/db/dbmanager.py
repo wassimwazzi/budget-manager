@@ -41,31 +41,37 @@ class DBManager:
     def __exit__(self, exc_type, exc_value, traceback):
         self.conn.close()
 
-    @throws_db_error
+    # @throws_db_error
     def create_table(self, create_table_sql):
         c = self.conn.cursor()
         c.execute(create_table_sql)
 
-    @throws_db_error
+    # @throws_db_error
     def insert(self, sql, data):
         c = self.conn.cursor()
         c.execute(sql, data)
         self.conn.commit()
         return c.lastrowid
 
-    @throws_db_error
+    def insert_many(self, sql, data):
+        c = self.conn.cursor()
+        c.executemany(sql, data)
+        self.conn.commit()
+        return c.lastrowid
+
+    # @throws_db_error
     def select(self, sql, data):
         c = self.conn.cursor()
         c.execute(sql, data)
         return c.fetchall()
 
-    @throws_db_error
+    # @throws_db_error
     def update(self, sql, data):
         c = self.conn.cursor()
         c.execute(sql, data)
         self.conn.commit()
 
-    @throws_db_error
+    # @throws_db_error
     def delete(self, sql, data):
         c = self.conn.cursor()
         c.execute(sql, data)

@@ -1,5 +1,7 @@
 import tkinter as tk
 from abc import ABC, abstractmethod
+from sqlite3 import Error
+import pandas as pd
 from src.form.fields import (
     FormField,
     DateField,
@@ -17,6 +19,7 @@ class ABForm(ABC):
     """
 
     ERROR_COLOR = "red"
+    SUCCESS_COLOR = "green"
     VALID_COLOR = "SystemButtonFace"
 
     def __init__(self, form: tk.Frame, form_fields: list[FormField]):
@@ -25,6 +28,7 @@ class ABForm(ABC):
             tk.Label(form, text="", font=("Arial", 10), fg=ABForm.ERROR_COLOR)
             for _ in form_fields
         ]
+        self.form_message_label = tk.Label(form, text="", font=("Arial", 10))
         self.form = form
         self.form.pack(pady=20)
 
@@ -51,9 +55,13 @@ class ABForm(ABC):
             bg="white",
         )
         submit_button.grid(row=len(self.form_fields) * 2, columnspan=3, padx=20, pady=5)
+        self.form_message_label.grid(
+            row=len(self.form_fields) * 2 + 1, columnspan=3, padx=20
+        )
 
     def submit(self):
         is_success = True
+        self.form_message_label.config(text="")
         for i, form_field in enumerate(self.form_fields):
             is_valid, error_message = form_field.validate()
             if not is_valid:
@@ -73,8 +81,14 @@ class ABForm(ABC):
                 self.error_labels[i].config(text="")
 
         if is_success:
-            self.on_success()
-            self.clear_form()
+            success, message = self.on_success()
+            if success:
+                self.clear_form()
+                self.form_message_label.config(text=message, fg=ABForm.SUCCESS_COLOR)
+            else:
+                self.form_message_label.config(
+                    text=error_message, fg=ABForm.ERROR_COLOR
+                )
 
     def clear_form(self):
         for i, form_field in enumerate(self.form_fields):
@@ -88,7 +102,7 @@ class ABForm(ABC):
             error_label.config(text="")
 
     @abstractmethod
-    def on_success(self):
+    def on_success(self) -> (bool, str):
         pass
 
 
@@ -101,23 +115,27 @@ class TransactionForm(ABForm):
             DateField("Date (YYYY-MM-DD)", True, self.form),
             TextField("Description", True, self.form),
             NumberField("Amount", True, self.form),
-            DropdownField("Category", True, ["Income", "Expense"], self.form),
             TextField("Code", False, self.form),
+            DropdownField("Category", True, ["Income", "Expense"], self.form),
         ]
         self.db = DBManager()
         super().__init__(self.form, self.form_fields)
         super().create_form()
 
-    def on_success(self):
+    def on_success(self) -> (bool, str):
         # Data is valid, proceed with insertion
         data = [field.get_value() for field in self.form_fields]
-        self.db.insert(
-            """
-                INSERT INTO transactions (date, description, amount, category, code)
-                VALUES (?, ?, ?, ?, ?)
-            """,
-            data,
-        )
+        try:
+            self.db.insert(
+                """
+                    INSERT INTO transactions (date, description, amount, category, code)
+                    VALUES (?, ?, ?, ?, ?)
+                """,
+                data,
+            )
+        except Error as e:
+            return (False, str(e))
+        return (True, "Successfully added transaction")
 
 
 class TransactionsCsvForm(ABForm):
@@ -126,14 +144,73 @@ class TransactionsCsvForm(ABForm):
         self.form = tk.Frame(self.master)
         self.form.pack(pady=20)
         self.form_fields = [
-            UploadFileField("CSV File", True, self.form, [("CSV Files", "*.csv")]),
+            UploadFileField(
+                "CSV File",
+                True,
+                self.form,
+                # mac numbers csv
+                [
+                    ("CSV Files", "*.csv"),
+                    ("Excel Files", "*.xlsx"),
+                    # ("Mac numbers", "*.numbers"),
+                ],
+            ),
         ]
+        self.db = DBManager()
         super().__init__(self.form, self.form_fields)
         super().create_form()
 
-    def on_success(self):
+    def on_success(self) -> (bool, str):
         data = self.form_fields[0].get_value()
-        self.db = DBManager()
-        with open(data, "r") as f:
-            for line in f:
-                print(line)
+        with open(data, "r", encoding="utf-8") as f:
+            df = pd.read_csv(f)
+            # validate column names
+            expected_columns = ["Date", "Description", "Amount", "Category", "Code"]
+            if not all(col in df.columns for col in expected_columns):
+                return (False, f"Invalid column names, must be {expected_columns}")
+            df["Amount"] = df["Amount"].apply(
+                lambda x: round(float(x.replace(",", "")), 2)
+            )
+            # validate data types
+            df["Date"] = pd.to_datetime(df["Date"], format="%Y-%m-%d")
+            # round to 2 decimal places
+            # validate date
+            today = pd.Timestamp.today()
+            if not all(df["Date"] <= today):
+                return (False, "Date cannot be in the future")
+            # convert dates to YYYY-MM-DD string
+            df["Date"] = df["Date"].apply(lambda x: x.strftime("%Y-%m-%d"))
+
+            # validate category
+            # categories = self.db.select("SELECT category FROM categories", [])
+            # categories = [category[0] for category in categories]
+            # if not all(df["Category"].isin(categories)):
+            #     return (False, f"Invalid category, must be one of {categories}")
+
+            # create category if not exists
+            categories = set(df["Category"])
+            for category in categories:
+                self.db.insert(
+                    """
+                        INSERT OR IGNORE INTO categories (category)
+                        VALUES (?)
+                    """,
+                    (category,),
+                )
+
+            data = []
+            # insert into db
+            for _, row in df.iterrows():
+                row_data = tuple(row[col] for col in expected_columns)
+                data.append(row_data)
+            try:
+                self.db.insert_many(
+                    """
+                        INSERT INTO transactions (date, description, amount, category, code)
+                        VALUES (?, ?, ?, ?, ?)
+                    """,
+                    data,
+                )
+                return (True, "Successfully added transactions")
+            except Error as e:
+                return (False, str(e))
