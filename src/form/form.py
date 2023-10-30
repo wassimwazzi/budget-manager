@@ -15,14 +15,12 @@ class ABForm(ABC):
     def __init__(self, form: tk.Frame, form_fields: list[FormField]):
         print("Form init")
         self.form_fields = form_fields
-        # self.tk_fields = {}
         self.error_labels = [
             tk.Label(form, text="", font=("Arial", 10), fg=ABForm.ERROR_COLOR)
             for _ in form_fields
         ]
         self.form = form
         self.form.pack(pady=20)
-        # self.validator = FormValidator(form_fields)
 
     def create_form(self):
         for i, form_field in enumerate(self.form_fields):
