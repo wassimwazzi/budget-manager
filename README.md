@@ -9,3 +9,9 @@ App to track spending and budget
 - `pip install -r requirements.txt`
 - Run setup.py file to create database tables: `python setup.py`
 - Run main.py: `python main.py`
+
+### Recommended extensions for VSCode
+- python
+- sqlite
+- pylint
+- github copilot

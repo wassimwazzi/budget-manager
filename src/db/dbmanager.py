@@ -16,7 +16,7 @@ class DBManager:
             print(e)
 
     def setup(self):
-        with open(DBManager.SCHEMA, 'r') as f:
+        with open(DBManager.SCHEMA, 'r', encoding='utf-8') as f:
             schema = f.read()
             cur = self.conn.cursor()
             cur.executescript(schema)
@@ -31,7 +31,7 @@ class DBManager:
     def __exit__(self, exc_type, exc_value, traceback):
         self.conn.close()
 
-    def throws_db_error(func):
+    def throws_db_error(self, func):
         def wrapper(*args, **kwargs):
             try:
                 return func(*args, **kwargs)

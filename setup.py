@@ -15,7 +15,7 @@ if __name__ == "__main__":
     # drop all tables
     db = DBManager()
     for table in TABLES:
-        db.delete("DROP TABLE IF EXISTS {}".format(table), [])
+        db.delete(f"DROP TABLE IF EXISTS {table}", ())
 
     # create tables
     db.setup()

@@ -1,7 +1,8 @@
 import tkinter as tk
 from datetime import datetime
-from src.db.dbmanager import DBManager
 from abc import ABC, abstractmethod
+from src.db.dbmanager import DBManager
+
 
 class FormValidator:
     def __init__(self, form_fields: list[dict[str, str]]):
@@ -18,13 +19,13 @@ class FormValidator:
                 isValid, error = self.validate_date(value)
                 if not isValid:
                     errors[field_name] = error
-                
+
             elif field_info["type"] == "number":
                 if not value.replace(".", "").isdigit():
                     errors[field_name] = "Invalid number"
 
         return errors
-    
+
     def validate_date(self, date_str: str) -> bool:
         try:
             date = datetime.strptime(date_str, "%Y-%m-%d")
@@ -35,15 +36,16 @@ class FormValidator:
         except ValueError:
             return (False, "Invalid date format, must be YYYY-MM-DD")
 
+
 class ABForm(ABC):
     """
-        Abstract base class for forms
+    Abstract base class for forms
     """
+
     ERROR_COLOR = "red"
     VALID_COLOR = "SystemButtonFace"
 
     def __init__(self, form: tk.Frame, form_fields: list[dict[str, str]]):
-        
         print("Form init")
         self.form_fields = form_fields
         self.tk_fields = {}
@@ -55,18 +57,31 @@ class ABForm(ABC):
     def create_form(self):
         for i, field_info in enumerate(self.form_fields):
             field_name = field_info["name"]
-            tk_label = tk.Label(self.form, text=field_name, font=("Arial", 12), fg="white")
-            tk_label.grid(row=i * 2, column=0, sticky='w', padx=10, pady=10)
+            tk_label = tk.Label(
+                self.form, text=field_name, font=("Arial", 12), fg="white"
+            )
+            tk_label.grid(row=i * 2, column=0, sticky="w", padx=10, pady=10)
             tk_field = tk.Entry(self.form)
-            tk_field.config(highlightbackground=ABForm.VALID_COLOR, highlightcolor=ABForm.VALID_COLOR)
-            tk_field.grid(row=i * 2, column=1, padx=10, pady=10, sticky='w')
+            tk_field.config(
+                highlightbackground=ABForm.VALID_COLOR,
+                highlightcolor=ABForm.VALID_COLOR,
+            )
+            tk_field.grid(row=i * 2, column=1, padx=10, pady=10, sticky="w")
             self.tk_fields[field_name] = tk_field
 
-            error_label = tk.Label(self.form, text="", font=("Arial", 10), fg=ABForm.ERROR_COLOR)
+            error_label = tk.Label(
+                self.form, text="", font=("Arial", 10), fg=ABForm.ERROR_COLOR
+            )
             error_label.grid(row=i * 2 + 1, column=1, padx=10)
             self.error_labels[field_name] = error_label
 
-        submit_button = tk.Button(self.form, text="Submit", command=self.submit, font=("Arial", 12), bg="white")
+        submit_button = tk.Button(
+            self.form,
+            text="Submit",
+            command=self.submit,
+            font=("Arial", 12),
+            bg="white",
+        )
         submit_button.grid(row=len(self.form_fields) * 2, columnspan=3, padx=20, pady=5)
 
     def submit(self):
@@ -74,30 +89,54 @@ class ABForm(ABC):
         errors = self.validator.validate(self.tk_fields)
 
         for tk_field_name, tk_field in self.tk_fields.items():
-            if tk_field_name in errors.keys():
+            if tk_field_name in errors:
                 error_label = self.error_labels[tk_field_name]
-                tk_field.config(highlightbackground=ABForm.ERROR_COLOR, highlightcolor=ABForm.ERROR_COLOR)
+                tk_field.config(
+                    highlightbackground=ABForm.ERROR_COLOR,
+                    highlightcolor=ABForm.ERROR_COLOR,
+                )
                 error_label.config(text=errors[tk_field_name])
             else:
                 data[tk_field_name] = tk_field.get()
-                tk_field.config(highlightbackground=ABForm.VALID_COLOR, highlightcolor=ABForm.VALID_COLOR)
+                tk_field.config(
+                    highlightbackground=ABForm.VALID_COLOR,
+                    highlightcolor=ABForm.VALID_COLOR,
+                )
                 error_label = self.error_labels[tk_field_name]
                 error_label.config(text="")
 
         if not errors:
-            self.onSuccess(data)
+            self.on_success(data)
             self.clear_form()
 
     def clear_form(self):
         for field_name, tk_field in self.tk_fields.items():
             error_label = self.error_labels[field_name]
-            tk_field.config(highlightbackground=ABForm.VALID_COLOR, highlightcolor=ABForm.VALID_COLOR)
+            tk_field.config(
+                highlightbackground=ABForm.VALID_COLOR,
+                highlightcolor=ABForm.VALID_COLOR,
+            )
             tk_field.delete(0, "end")
             error_label.config(text="")
 
     @abstractmethod
-    def onSuccess(self, data: dict[str, str]):
+    def on_success(self, data: dict[str, str]):
         pass
+
+
+class FieldType:
+    DATE = "date"
+    TEXT = "text"
+    NUMBER = "number"
+    DROPDOWN = "dropdown"
+
+
+class FormField(ABC):
+    def __init__(self, name: str, field_type: FieldType, required: bool):
+        self.name = name
+        self.field_type = field_type
+        self.required = required
+
 
 class TransactionForm(ABForm):
     FORM_FIELDS = [
@@ -126,7 +165,7 @@ class TransactionForm(ABForm):
             "name": "Code",
             "type": "text",
             "required": False,
-        }
+        },
     ]
 
     def __init__(self, master: tk.Tk):
@@ -138,9 +177,12 @@ class TransactionForm(ABForm):
         super().__init__(self.form, TransactionForm.FORM_FIELDS)
         super().create_form()
 
-    def onSuccess(self, data: dict[str, str]):
+    def on_success(self, data: dict[str, str]):
         # Data is valid, proceed with insertion
         self.db.insert(
-            "INSERT INTO transactions (date, description, amount, category, code) VALUES (?, ?, ?, ?, ?)",
+            """
+                INSERT INTO transactions (date, description, amount, category, code)
+                VALUES (?, ?, ?, ?, ?)
+            """,
             list(data.values()),
         )
