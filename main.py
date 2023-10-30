@@ -1,5 +1,6 @@
 import tkinter as tk
 from datetime import datetime
+from db.dbmanager import DBManager
 
 class FormValidator:
     def __init__(self, form_fields: list[dict[str, str]]):
@@ -10,9 +11,12 @@ class FormValidator:
         for field_info in self.form_fields:
             field_name = field_info["name"]
             value = data[field_name].get()
-            if field_info["type"] == "date":
-                if not self.validate_date(value):
-                    errors[field_name] = "Invalid date"
+            if field_info["required"] and not value:
+                errors[field_name] = "Required field"
+            elif field_info["type"] == "date":
+                isValid, error = self.validate_date(value)
+                if not isValid:
+                    errors[field_name] = error
                 
             elif field_info["type"] == "number":
                 if not value.replace(".", "").isdigit():
@@ -25,16 +29,16 @@ class FormValidator:
             date = datetime.strptime(date_str, "%Y-%m-%d")
             today = datetime.now()
             if date > today:
-                return False
-            return True
+                return (False, "Date cannot be in the future")
+            return (True, None)
         except ValueError:
-            return False
+            return (False, "Invalid date format, must be YYYY-MM-DD")
 
 class Form:
     FORM_FIELDS = [
         # consider making class form field instead of dict
         {
-            "name": "Date",
+            "name": "Date (YYYY-MM-DD)",
             "type": "date",
             "required": True,
         },
@@ -59,8 +63,11 @@ class Form:
             "required": False,
         }
     ]
+    ERROR_COLOR = "red"
+    VALID_COLOR = "SystemButtonFace"
 
     def __init__(self, master: tk.Tk):
+        # TODO: use onSuccess, onError callbacks as well as validator being passed in.
         self.master = master
         self.form_fields = [field["name"] for field in Form.FORM_FIELDS]
         self.tk_fields = {}
@@ -68,6 +75,7 @@ class Form:
         self.form = tk.Frame(self.master)
         self.form.pack(pady=20)
         self.validator = FormValidator(Form.FORM_FIELDS)
+        self.db = DBManager()
         self.create_form()
 
     def create_form(self):
@@ -76,11 +84,12 @@ class Form:
             tk_label = tk.Label(self.form, text=field_name, font=("Arial", 12), fg="white")
             tk_label.grid(row=i * 2, column=0, sticky='w', padx=10, pady=10)
             tk_field = tk.Entry(self.form)
-            tk_field.grid(row=i * 2 + 1, column=0, padx=10, pady=10, sticky='w')
+            tk_field.config(highlightbackground=Form.VALID_COLOR, highlightcolor=Form.VALID_COLOR)
+            tk_field.grid(row=i * 2, column=1, padx=10, pady=10, sticky='w')
             self.tk_fields[field_name] = tk_field
 
-            error_label = tk.Label(self.form, text="", font=("Arial", 10), fg="red")
-            error_label.grid(row=i * 2, column=0, padx=10)
+            error_label = tk.Label(self.form, text="", font=("Arial", 10), fg=Form.ERROR_COLOR)
+            error_label.grid(row=i * 2 + 1, column=1, padx=10)
             self.error_labels[field_name] = error_label
 
         submit_button = tk.Button(self.form, text="Submit", command=self.submit, font=("Arial", 12), bg="white")
@@ -90,11 +99,16 @@ class Form:
         data = {}
         errors = self.validator.validate(self.tk_fields)
 
-        for field_name, error_message in errors.items():
-            tk_field = self.tk_fields[field_name]
-            error_label = self.error_labels[field_name]
-            tk_field.config(highlightbackground="red", highlightcolor="red")
-            error_label.config(text=error_message)
+        for tk_field_name, tk_field in self.tk_fields.items():
+            if tk_field_name in errors.keys():
+                error_label = self.error_labels[tk_field_name]
+                tk_field.config(highlightbackground=Form.ERROR_COLOR, highlightcolor=Form.ERROR_COLOR)
+                error_label.config(text=errors[tk_field_name])
+            else:
+                data[tk_field_name] = tk_field.get()
+                tk_field.config(highlightbackground=Form.VALID_COLOR, highlightcolor=Form.VALID_COLOR)
+                error_label = self.error_labels[tk_field_name]
+                error_label.config(text="")
 
         if not errors:
             # Data is valid, proceed with insertion
@@ -107,7 +121,7 @@ class Form:
     def clear_form(self):
         for field_name, tk_field in self.tk_fields.items():
             error_label = self.error_labels[field_name]
-            tk_field.config(highlightbackground="SystemButtonFace", highlightcolor="SystemButtonFace")
+            tk_field.config(highlightbackground=Form.VALID_COLOR, highlightcolor=Form.VALID_COLOR)
             tk_field.delete(0, "end")
             error_label.config(text="")
 
