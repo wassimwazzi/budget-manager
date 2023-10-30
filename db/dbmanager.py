@@ -1,6 +1,5 @@
 import sqlite3
 from sqlite3 import Error
-import os
 
 
 # class to handle database
@@ -10,15 +9,11 @@ class DBManager:
         self.conn = None
         self.db = DBManager.DATABASE
         try:
-            doSetup = not os.path.exists(self.db)
             self.conn = sqlite3.connect(self.db)
-            if doSetup:
-                print('Creating database...')
-                self.__setup()
         except Error as e:
             print(e)
 
-    def __setup(self):
+    def setup(self):
         with open('db/schema.sql', 'r') as f:
             schema = f.read()
             cur = self.conn.cursor()
@@ -34,44 +29,40 @@ class DBManager:
     def __exit__(self, exc_type, exc_value, traceback):
         self.conn.close()
 
+    def throws_db_error(func):
+        def wrapper(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except Error as e:
+                print(e)
+        return wrapper
+
+    @throws_db_error
     def create_table(self, create_table_sql):
-        try:
-            c = self.conn.cursor()
-            c.execute(create_table_sql)
-        except Error as e:
-            print(e)
+        c = self.conn.cursor()
+        c.execute(create_table_sql)
 
+    @throws_db_error
     def insert(self, sql, data):
-        try:
-            c = self.conn.cursor()
-            c.execute(sql, data)
-            self.conn.commit()
-            return c.lastrowid
-        except Error as e:
-            print(e)
+        c = self.conn.cursor()
+        c.execute(sql, data)
+        self.conn.commit()
+        return c.lastrowid
 
+    @throws_db_error
     def select(self, sql, data):
-        try:
-            c = self.conn.cursor()
-            c.execute(sql, data)
-            return c.fetchall()
-        except Error as e:
-            print(e)
+        c = self.conn.cursor()
+        c.execute(sql, data)
+        return c.fetchall()
 
+    @throws_db_error
     def update(self, sql, data):
-        try:
-            c = self.conn.cursor()
-            c.execute(sql, data)
-            self.conn.commit()
-        except Error as e:
-            print(e)
+        c = self.conn.cursor()
+        c.execute(sql, data)
+        self.conn.commit()
 
+    @throws_db_error
     def delete(self, sql, data):
-        try:
-            c = self.conn.cursor()
-            c.execute(sql, data)
-            self.conn.commit()
-        except Error as e:
-            print(e)
-
-# Path: models.py
+        c = self.conn.cursor()
+        c.execute(sql, data)
+        self.conn.commit()

@@ -1,48 +1,63 @@
-from kivy.app import App
-from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.label import Label
-from kivy.uix.textinput import TextInput
-from kivy.uix.button import Button
 from db.dbmanager import DBManager
+import tkinter as tk
+from tkinter import filedialog
+import csv
 
-class FormApp(App):
-    def build(self):
+
+class Form:
+    """
+    Form class. Allows to enter individual transactions, or upload a CSV file.
+    """
+
+    def __init__(self, master):
+        self.master = master
         self.db = DBManager()
         self.form_fields = ["Date", "Description", "Amount", "Category", "Code"]
-        self.kivy_fields = []
-        
-        layout = BoxLayout(orientation="vertical", padding=20)
-        
-        for field in self.form_fields:
-            label = Label(text=field, font_size=12, color=(0, 0, 0, 1))
-            layout.add_widget(label)
-            
-            text_input = TextInput()
-            layout.add_widget(text_input)
-            self.kivy_fields.append(text_input)
-        
-        submit_button = Button(text="Submit", font_size=12)
-        submit_button.bind(on_press=self.submit)
-        layout.add_widget(submit_button)
+        self.tk_fields = []
+        self.form = tk.Frame(self.master)
+        self.form.pack(pady=20)
+        self.create_form()
 
-        return layout
+    def create_form(self):
+        """
+        Creates the form.
+        """
+        for i, field in enumerate(self.form_fields):
+            tk_label = tk.Label(self.form, text=field, font=("Arial", 12), fg="white")
+            tk_label.grid(row=i, column=0, sticky='w', padx=10, pady=10)
+            tk_field = tk.Entry(self.form)
+            tk_field.grid(row=i, column=1, padx=10, pady=10, sticky='w')
+            self.tk_fields.append(tk_field)
 
-    def submit(self, instance):
-        data = [field.text for field in self.kivy_fields]
-        for text_input in self.kivy_fields:
-            print(text_input.text)
-            text_input.text = ""
+        submit_button = tk.Button(self.form, text="Submit", command=self.submit, font=("Arial", 12), bg="white")
+        submit_button.grid(row=len(self.form_fields), columnspan=2, padx=20, pady=5)
+
+    def submit(self):
+        """
+        Submits the form.
+        """
+        data = []
+        for tk_field in self.tk_fields:
+            data.append(tk_field.get())
+            tk_field.delete(0, "end")
 
         self.db.insert(
             "INSERT INTO transactions (date, description, amount, category, code) VALUES (?, ?, ?, ?, ?)",
             data,
         )
 
-if __name__ == "__main__":
-    with DBManager() as db:
-        transactions = db.select("SELECT * FROM transactions", [])
-        for transaction in transactions:
-            print(transaction)
-    FormApp().run()
-    # show all transactionsß
+        self.clear_form()
 
+    def clear_form(self):
+        """
+        Clears the form.
+        """
+        for tk_field in self.tk_fields:
+            tk_field.delete(0, "end")
+
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    form = Form(root)
+
+    root.mainloop()
