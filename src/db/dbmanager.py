@@ -2,10 +2,20 @@ import sqlite3
 from sqlite3 import Error
 
 
+def throws_db_error(func):
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Error as e:
+            print(e)
+
+    return wrapper
+
+
 # class to handle database
 class DBManager:
-    DATABASE = 'db.sqlite3'
-    SCHEMA = 'src/db/schema.sql'
+    DATABASE = "db.sqlite3"
+    SCHEMA = "src/db/schema.sql"
 
     def __init__(self):
         self.conn = None
@@ -16,7 +26,7 @@ class DBManager:
             print(e)
 
     def setup(self):
-        with open(DBManager.SCHEMA, 'r', encoding='utf-8') as f:
+        with open(DBManager.SCHEMA, "r", encoding="utf-8") as f:
             schema = f.read()
             cur = self.conn.cursor()
             cur.executescript(schema)
@@ -27,17 +37,9 @@ class DBManager:
 
     def __enter__(self):
         return self
-    
+
     def __exit__(self, exc_type, exc_value, traceback):
         self.conn.close()
-
-    def throws_db_error(self, func):
-        def wrapper(*args, **kwargs):
-            try:
-                return func(*args, **kwargs)
-            except Error as e:
-                print(e)
-        return wrapper
 
     @throws_db_error
     def create_table(self, create_table_sql):
