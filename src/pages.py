@@ -1,10 +1,12 @@
 import tkinter as tk
 from tkinter import ttk
 from src.form.form import TransactionForm, TransactionsCsvForm
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from src.db.data_summarizer import (
     get_transactions_df,
     get_budget_summary_df,
     get_monthly_income_df,
+    get_budget_summary_plt,
 )
 
 
@@ -19,10 +21,11 @@ class HomePage(tk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
         df = get_budget_summary_df("2023-10")
-        frame = tk.Frame(self)
-        frame.pack(pady=10)
+        upper_frame = tk.Frame(self)
+        upper_frame.pack(fill="both", expand=True)
+        upper_frame.pack(pady=10)
         # Create a Treeview widget to display the DataFrame
-        tree = ttk.Treeview(self, columns=list(df.columns), show="headings")
+        tree = ttk.Treeview(upper_frame, columns=list(df.columns), show="headings")
 
         # Add column headings
         for col in df.columns:
@@ -33,4 +36,12 @@ class HomePage(tk.Frame):
         for index, row in df.iterrows():
             tree.insert("", "end", values=list(row))
 
-        tree.pack()
+        tree.pack(side="left", fill="both", expand=True)
+
+        # create frame for plot
+        plot_frame = tk.Frame(upper_frame)
+        plot_frame.pack(pady=10)
+        fig = get_budget_summary_plt("2023-10")
+        canvas = FigureCanvasTkAgg(fig, master=plot_frame)
+        canvas.draw()
+        canvas.get_tk_widget().pack(side="right", fill="both", expand=True)

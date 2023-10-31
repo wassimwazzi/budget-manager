@@ -51,14 +51,24 @@ def get_budget_summary_df(month):
                     )
                 ) AND
                 c.INCOME = 0
+            ),
+
+            TRANSACTIONSBUDGET AS (
+                SELECT b.CATEGORY AS Category, b.AMOUNT AS Budget,
+                    COALESCE(SUM(t.amount),0) AS Actual, b.AMOUNT - COALESCE(SUM(t.amount),0) AS Difference
+                FROM BUDGETSINCEDATE b
+                LEFT OUTER JOIN TRANSACTIONS t ON (
+                    t.category = b.category AND
+                    t.date >= '{start_date}' AND
+                    t.date <= '{end_date}'
+                )
+                GROUP BY b.CATEGORY
+                ORDER BY Difference ASC
             )
 
-            SELECT b.CATEGORY AS Category, b.AMOUNT AS Budget, SUM(t.amount) AS Actual, b.AMOUNT - SUM(t.amount) AS Difference
-            FROM TRANSACTIONS t
-            JOIN BUDGETSINCEDATE b ON t.category = b.category
-            WHERE t.date >= '{start_date}' AND t.date <= '{end_date}'
-            GROUP BY b.CATEGORY
-            ORDER BY Difference ASC
+            SELECT * FROM TRANSACTIONSBUDGET
+            WHERE Actual > 0 OR budget > 0
+            ;
         """,
         [],
     )
@@ -80,3 +90,21 @@ def get_monthly_income_df():
     df = pd.DataFrame(df, columns=["month", "total", "category"])
     print(df)
     return df
+
+
+def get_budget_summary_plt(month):
+    df = get_budget_summary_df(month)
+
+    fig, ax = plt.subplots()
+
+    # Create a bar chart of the budget vs. actual vs difference for each category
+    ax.bar(df["Category"], df["Budget"], label="Budget")
+    ax.bar(df["Category"], df["Actual"], label="Actual")
+    ax.bar(df["Category"], df["Difference"], label="Difference")
+
+    # Set labels and legend
+    ax.set_xlabel("Category")
+    ax.set_ylabel("Amount")
+    ax.set_title("Budget vs. Actual")
+
+    return fig
