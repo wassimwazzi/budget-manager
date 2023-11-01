@@ -7,14 +7,15 @@ from src.db.dbmanager import DBManager
 db = DBManager()
 
 
-def get_end_of_month(start_of_month: str):
-    start_of_month = start_of_month[:7]
-    start_of_month += "-01"
-    start_of_month = datetime.strptime(start_of_month, "%Y-%m-%d")
-    _, last_day = calendar.monthrange(start_of_month.year, start_of_month.month)
+def get_end_of_month(month: str):
+    """
+    start_of_month: str in the format YYYY-MM
+    """
+    month = datetime.strptime(month, "%Y-%m")
+    _, last_day = calendar.monthrange(month.year, month.month)
 
     # Calculate the end of the month datetime
-    end_of_month = start_of_month + timedelta(days=last_day - 1)
+    end_of_month = month + timedelta(days=last_day - 1)
     return end_of_month.strftime("%Y-%m-%d")
 
 
@@ -33,8 +34,13 @@ def get_transactions_df():
 
 
 def get_budget_summary_df(month):
-    start_date = month[:7] + "-01"
-    end_date = get_end_of_month(start_date)
+    """
+    month: str in the format YYYY-MM
+    """
+    print(month)
+    start_date = datetime.strptime(month, "%Y-%m").strftime("%Y-%m-01")
+    print(start_date)
+    end_date = get_end_of_month(month)
     df = db.select(
         f"""
             -- Give budget since date for each expense category

@@ -74,18 +74,34 @@ class FormField(ABC):
 
 
 class DateField(FormField):
-    def __init__(self, name: str, required: bool, form: tk.Frame):
+    def __init__(
+        self, name: str, required: bool, form: tk.Frame, date_format: str = "YYYY-MM-DD"
+    ):
         super().__init__(name, FieldType.DATE, required, form)
+        self.date_format = date_format
 
     def validate_value(self, value: str) -> (bool, str):
+        format_mapping = {
+            "YYYY": "%Y",
+            "MM": "%m",
+            "DD": "%d",
+            "HH": "%H",
+            "mm": "%M",
+            "ss": "%S",
+        }
         try:
-            date = datetime.strptime(value, "%Y-%m-%d")
+            strptime_format = "-".join(
+                format_mapping.get(token, token)
+                for token in self.date_format.split("-")
+            )
+            date = datetime.strptime(value, strptime_format)
             today = datetime.now()
             if date > today:
                 return (False, "Date cannot be in the future")
             return (True, None)
-        except ValueError:
-            return (False, "Invalid date format, must be YYYY-MM-DD")
+        except ValueError as e:
+            print(e)
+            return (False, f"Invalid date format, must be {self.date_format}")
 
     def get_tk_field_template(self):
         return tk.Entry(self.get_form())

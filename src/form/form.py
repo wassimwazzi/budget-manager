@@ -228,7 +228,7 @@ class GenerateMonthlySummaryForm(ABForm):
         self.form = tk.Frame(self.master)
         self.form.pack(pady=20)
         self.form_fields = [
-            DateField("Month (YYYY-MM)", True, self.form),
+            DateField("Month (YYYY-MM)", True, self.form, date_format="YYYY-MM")
         ]
         self.db = DBManager()
         self.listeners = []
