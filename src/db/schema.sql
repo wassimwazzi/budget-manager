@@ -4,7 +4,7 @@ CREATE TABLE TRANSACTIONS (
     AMOUNT DECIMAL(10,2) NOT NULL,
     CURRENCY VARCHAR(3) NOT NULL DEFAULT 'CAD',
     DATE DATE NOT NULL,
-    DESCRIPTION VARCHAR(255) NOT NULL,
+    DESCRIPTION VARCHAR(255),
     CATEGORY VARCHAR(20) NOT NULL,
     FOREIGN KEY (CATEGORY) REFERENCES CATEGORIES (CATEGORY),
     FOREIGN KEY (CURRENCY) REFERENCES CURRENCIES (CODE)
@@ -36,6 +36,7 @@ INSERT INTO CURRENCIES (CODE) VALUES ('CAD'), ('USD'), ('EUR');
 INSERT INTO CATEGORIES (CATEGORY, INCOME, DESCRIPTION) VALUES 
     ('Salary', 1, 'Salary from work'),
     ('Reimbursment', 1, 'Taxes, or any other thing'),
+    ('E-transfer', 1, ''),
     ('Home', 0, 'Items for home'),
     ('Utilities', 0, 'Utilities'),
     ('Fast Food', 0, 'Any food to go / fast food'),

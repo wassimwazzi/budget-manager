@@ -89,9 +89,7 @@ class ABForm(ABC):
                 self.clear_form()
                 self.form_message_label.config(text=message, fg=ABForm.SUCCESS_COLOR)
             else:
-                self.form_message_label.config(
-                    text=error_message, fg=ABForm.ERROR_COLOR
-                )
+                self.form_message_label.config(text=message, fg=ABForm.ERROR_COLOR)
 
     def clear_form(self):
         for i, form_field in enumerate(self.form_fields):
@@ -170,15 +168,19 @@ class TransactionsCsvForm(ABForm):
         data = self.form_fields[0].get_value()
         with open(data, "r", encoding="utf-8") as f:
             df = pd.read_csv(f)
-            # validate column names
+            # validate column namesC
             expected_columns = ["Date", "Description", "Amount", "Category", "Code"]
             if not all(col in df.columns for col in expected_columns):
-                return (False, f"Invalid column names, must be {expected_columns}")
+                return (
+                    False,
+                    f"Invalid column names {df.columns}, must be {expected_columns}",
+                )
             df["Amount"] = df["Amount"].apply(
-                lambda x: round(float(x.replace(",", "")), 2)
+                lambda x: float(x.replace(",", "")) if isinstance(x, str) else x
             )
+            df["Amount"] = df["Amount"].apply(lambda x: round(x, 2))
             # validate data types
-            df["Date"] = pd.to_datetime(df["Date"], format="%Y-%m-%d")
+            df["Date"] = pd.to_datetime(df["Date"])
             # round to 2 decimal places
             # validate date
             today = pd.Timestamp.today()
