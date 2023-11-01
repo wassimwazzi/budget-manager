@@ -23,7 +23,7 @@ def get_transactions_df():
     transactions = db.select(
         "SELECT date, description, amount, category, code FROM transactions", []
     )
-    print(transactions)
+    (transactions)
     df = pd.DataFrame(
         transactions,
         columns=["date", "description", "amount", "category", "code"],
@@ -37,9 +37,7 @@ def get_budget_summary_df(month):
     """
     month: str in the format YYYY-MM
     """
-    print(month)
     start_date = datetime.strptime(month, "%Y-%m").strftime("%Y-%m-01")
-    print(start_date)
     end_date = get_end_of_month(month)
     df = db.select(
         f"""
@@ -94,7 +92,6 @@ def get_monthly_income_df():
         [],
     )
     df = pd.DataFrame(df, columns=["month", "total", "category"])
-    print(df)
     return df
 
 
