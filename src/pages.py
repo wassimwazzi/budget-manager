@@ -1,6 +1,10 @@
 import tkinter as tk
 from tkinter import ttk
-from src.form.form import TransactionForm, TransactionsCsvForm
+from src.form.form import (
+    TransactionForm,
+    TransactionsCsvForm,
+    GenerateMonthlySummaryForm,
+)
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from src.db.data_summarizer import (
     get_transactions_df,
@@ -20,7 +24,14 @@ class DataEntryPage(tk.Frame):
 class HomePage(tk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
-        df = get_budget_summary_df("2023-10")
+        self.parent = parent
+        self.setup()
+
+    def notify(self, month):
+        self.budget_summary(month)
+
+    def budget_summary(self, month):
+        df = get_budget_summary_df(month)
         upper_frame = tk.Frame(self)
         upper_frame.pack(fill="both", expand=True)
         upper_frame.pack(pady=10)
@@ -30,10 +41,10 @@ class HomePage(tk.Frame):
         # Add column headings
         for col in df.columns:
             tree.heading(col, text=col)
-            tree.column(col, width=100)  # Adjust the width as needed
+            tree.column(col, width=100)
 
         # Insert data into the Treeview
-        for index, row in df.iterrows():
+        for _, row in df.iterrows():
             tree.insert("", "end", values=list(row))
 
         tree.pack(side="left", fill="both", expand=True)
@@ -41,7 +52,11 @@ class HomePage(tk.Frame):
         # create frame for plot
         plot_frame = tk.Frame(upper_frame)
         plot_frame.pack(pady=10)
-        fig = get_budget_summary_plt("2023-10")
+        fig = get_budget_summary_plt(month)
         canvas = FigureCanvasTkAgg(fig, master=plot_frame)
         canvas.draw()
         canvas.get_tk_widget().pack(side="right", fill="both", expand=True)
+
+    def setup(self):
+        form = GenerateMonthlySummaryForm(self)
+        form.register_listener(self)

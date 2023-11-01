@@ -22,8 +22,11 @@ class ABForm(ABC):
     SUCCESS_COLOR = "green"
     VALID_COLOR = "SystemButtonFace"
 
-    def __init__(self, form: tk.Frame, form_fields: list[FormField]):
+    def __init__(
+        self, form: tk.Frame, form_fields: list[FormField], submit_text="Submit"
+    ):
         self.form_fields = form_fields
+        self.submit_text = submit_text
         self.error_labels = [
             tk.Label(form, text="", font=("Arial", 10), fg=ABForm.ERROR_COLOR)
             for _ in form_fields
@@ -49,7 +52,7 @@ class ABForm(ABC):
 
         submit_button = tk.Button(
             self.form,
-            text="Submit",
+            text=self.submit_text,
             command=self.submit,
             font=("Arial", 12),
             bg="white",
@@ -217,3 +220,28 @@ class TransactionsCsvForm(ABForm):
                 return (True, "Successfully added transactions")
             except Error as e:
                 return (False, str(e))
+
+
+class GenerateMonthlySummaryForm(ABForm):
+    def __init__(self, master: tk.Tk):
+        self.master = master
+        self.form = tk.Frame(self.master)
+        self.form.pack(pady=20)
+        self.form_fields = [
+            DateField("Month (YYYY-MM)", True, self.form),
+        ]
+        self.db = DBManager()
+        self.listeners = []
+        super().__init__(
+            self.form, self.form_fields, submit_text="Generate Monthly Summary"
+        )
+        super().create_form()
+
+    def register_listener(self, listener):
+        self.listeners.append(listener)
+
+    def on_success(self) -> (bool, str):
+        month = self.form_fields[0].get_value()
+        for listener in self.listeners:
+            listener.notify(month)
+        return (True, "Successfully generated summary")

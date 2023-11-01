@@ -95,16 +95,26 @@ def get_monthly_income_df():
 def get_budget_summary_plt(month):
     df = get_budget_summary_df(month)
 
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(12, 6))  # Adjust the figure size as needed
 
-    # Create a bar chart of the budget vs. actual vs difference for each category
-    ax.bar(df["Category"], df["Budget"], label="Budget")
-    ax.bar(df["Category"], df["Actual"], label="Actual")
-    ax.bar(df["Category"], df["Difference"], label="Difference")
+    # Create a bar chart of the budget vs. actual for each category
+    width = 0.4
+    x = range(len(df["Category"]))
+    ax.bar(x, df["Budget"], width=width, label="Budget")
+    ax.bar([i + width for i in x], df["Actual"], width=width, label="Actual")
+
+    # Set x-axis labels, rotate them, and adjust spacing
+    ax.set_xticks([i + width / 2 for i in x])  # Adjust spacing
+    ax.set_xticklabels(
+        df["Category"], rotation=45, ha="right"
+    )  # Rotate labels for readability
 
     # Set labels and legend
     ax.set_xlabel("Category")
     ax.set_ylabel("Amount")
     ax.set_title("Budget vs. Actual")
+    ax.legend()
+
+    plt.tight_layout()  # Automatically adjust subplot parameters to prevent clipping
 
     return fig
