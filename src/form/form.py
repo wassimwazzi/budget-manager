@@ -174,7 +174,7 @@ class TransactionsCsvForm(ABForm):
             print(
                 f"Using existing category for {row['Description']}: {row['Category']}"
             )
-            return row["Category"]
+            return (row["Category"], False)
         code = row["Code"]
         # if previous transaction has same code, use that category
         prev_category = self.db.select(
@@ -190,10 +190,10 @@ class TransactionsCsvForm(ABForm):
             print(
                 f"Using previous category for {row['Description']}: {prev_category[0][0]}"
             )
-            return prev_category[0][0]
+            return (prev_category[0][0], True)
         if not row["Description"]:
             print(f"Using default category for {row['Description']}: Other")
-            return "Other"
+            return ("Other", False)
         # use NLP to infer category
         nlp = pipeline("zero-shot-classification")
         candidate_labels = categories
@@ -201,7 +201,7 @@ class TransactionsCsvForm(ABForm):
         print(results)
         result = results["labels"][0]
         print(f"Inferred category for {row['Description']}: {result}")
-        return result
+        return (result, True)
 
     def on_success(self) -> (bool, str):
         data = self.form_fields[0].get_value()
@@ -209,6 +209,7 @@ class TransactionsCsvForm(ABForm):
             df = pd.read_csv(f)
             # validate column namesC
             expected_columns = ["Date", "Description", "Amount", "Category", "Code"]
+            auto_added_columns = ["Inferred_Category"]
             if not all(col in df.columns for col in expected_columns):
                 return (
                     False,
@@ -255,16 +256,19 @@ class TransactionsCsvForm(ABForm):
             ]
 
             data = []
+            cols = expected_columns + auto_added_columns
             # insert into db
             for _, row in df.iterrows():
-                row["Category"] = self.infer_category(row, categories)
-                row_data = tuple(row[col] for col in expected_columns)
+                category, was_inferred = self.infer_category(row, categories)
+                row["Category"] = category
+                row["Inferred_Category"] = 1 if was_inferred else 0
+                row_data = tuple(row[col] for col in cols)
                 data.append(row_data)
             try:
                 self.db.insert_many(
-                    """
-                        INSERT INTO transactions (date, description, amount, category, code)
-                        VALUES (?, ?, ?, ?, ?)
+                    f"""
+                        INSERT INTO transactions ({', '.join(cols)})
+                        VALUES ({', '.join(['?'] * len(cols))})
                     """,
                     data,
                 )
