@@ -1,96 +1,32 @@
-# import torch
-# from transformers import DistilBertTokenizerFast, DistilBertForSequenceClassification
-# from torch.utils.data import DataLoader, TensorDataset
-
-
-# # class TextClassifier:
-# #     def __init__(self, model_name="distilbert-base-uncased") -> None:
-# #         self.tokenizer = DistilBertTokenizerFast.from_pretrained(model_name)
-# #         self.model = DistilBertForSequenceClassification.from_pretrained(model_name)
-
-# #         # set to use the GPU if available
-# #         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-# #         self.model.to(self.device)
-
-# #     def predict(self, text, labels):
-# #         # tokenize the text
-# #         inputs = self.tokenizer(
-# #             text, return_tensors="pt", padding=True, truncation=True
-# #         )
-# #         inputs.to(self.device)
-
-# #         # get the prediction from the model
-# #         outputs = self.model(**inputs)
-# #         logits = outputs.logits
-# #         predicted_label_id = torch.argmax(logits, dim=1).item()
-# #         predicted_label = labels[predicted_label_id]
-# #         print(predicted_label)
-
-# #         # return the predicted label
-# #         return predicted_label
-
-
-# #     def predict2(self, texts, labels):
-# #         # Tokenize the text data
-# #         encoded_data = self.tokenizer(
-# #             texts, padding=True, truncation=True, return_tensors="pt"
-# #         )
-
-# #         # Encode the labels as integers (you can use label encoders or a simple dictionary for this)
-# #         label_to_id = {v: i for i, v in enumerate(labels)}
-# #         labels = [label_to_id[label] for label in labels]
-
-# #         # Create a DataLoader for batch processing
-# #         input_data = TensorDataset(
-# #             encoded_data.input_ids, encoded_data.attention_mask, torch.tensor(labels)
-# #         )
-# #         batch_size = 32
-# #         dataloader = DataLoader(input_data, batch_size=batch_size, shuffle=False)
-
-# #         # Make predictions
-# #         self.model.eval()
-# #         predictions = []
-
-# #         with torch.no_grad():
-# #             for batch in dataloader:
-# #                 input_ids, attention_mask, labels = batch
-# #                 input_ids, attention_mask, labels = (
-# #                     input_ids.to(self.device),
-# #                     attention_mask.to(self.device),
-# #                     labels.to(self.device),
-# #                 )
-
-# #                 outputs = self.model(input_ids, attention_mask=attention_mask)
-# #                 logits = outputs.logits
-# #                 predicted_labels = torch.argmax(logits, dim=1).cpu().numpy()
-# #                 predictions.extend(predicted_labels)
-
-# #         # Map the predicted labels back to their original class names
-# #         id_to_label = {v: k for k, v in label_to_id.items()}
-# #         predicted_class_names = [id_to_label[pred] for pred in predictions]
-
-# #         # Now, predicted_class_names contains the predicted classes for each input line
-# #         return predicted_class_names
-
-# #     def predict_many(self, texts):
-# #         # tokenize the text
-# #         inputs = self.tokenizer(texts, return_tensors="pt", padding=True)
-# #         inputs.to(self.device)
-
-# #         # get the prediction from the model
-# #         outputs = self.model(**inputs)
-# #         logits = outputs.logits
-# #         predictions = torch.argmax(logits, dim=1).flatten()
-
-# #         # return the prediction
-# #         return predictions.tolist()
-
+from abc import ABC, abstractmethod
 import openai
+from transformers import pipeline
+
 
 API_KEY = "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"
 
 
-class TextClassifier:
+class TextClassifier(ABC):
+    """
+    Abstract class for text classifier
+    """
+
+    @abstractmethod
+    def predict(self, text, labels):
+        """
+        Given a text and a list of labels, predict the label for the text
+        """
+        pass
+
+    @abstractmethod
+    def predict_batch(self, texts, labels):
+        """
+        Given a list of texts and a list of labels, predict the labels for the texts
+        """
+        pass
+
+
+class GPTClassifier(TextClassifier):
     """
     GPT-3 Text Classifier
     given a list of text, predict the label for each text
@@ -159,4 +95,24 @@ class TextClassifier:
             predicted_label = predicted_label.strip()
             predicted_labels.append(predicted_label)
         print(predicted_labels)
+        return predicted_labels
+
+
+class SimpleClassifier(TextClassifier):
+    """
+    This classifier will be used to classify the text using NLP techniques.
+    It uses a pre-trained model from huggingface.
+    """
+
+    def __init__(self, model="facebook/bart-large-mnli") -> None:
+        self.pipe = pipeline(task="zero-shot-classification", model=model)
+
+    def predict(self, text, labels):
+        result = self.pipe(text, labels)
+        predicted_label = result[0]["label"]
+        return predicted_label
+
+    def predict_batch(self, texts, labels):
+        result = self.pipe(texts, labels)
+        predicted_labels = [r["labels"][0] for r in result]
         return predicted_labels

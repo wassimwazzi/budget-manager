@@ -11,7 +11,7 @@ from src.form.fields import (
     UploadFileField,
 )
 from src.db.dbmanager import DBManager
-from src.tools.text_classifier import TextClassifier
+from src.tools.text_classifier import GPTClassifier, SimpleClassifier
 
 
 class ABForm(ABC):
@@ -165,7 +165,7 @@ class TransactionsCsvForm(ABForm):
             ),
         ]
         self.db = DBManager()
-        self.text_classifier = TextClassifier()
+        self.text_classifier = SimpleClassifier()
         super().__init__(self.form, self.form_fields)
         super().create_form()
 
