@@ -11,7 +11,7 @@ from src.form.fields import (
     UploadFileField,
 )
 from src.db.dbmanager import DBManager
-from transformers import pipeline
+from src.tools.text_classifier import TextClassifier
 
 
 class ABForm(ABC):
@@ -165,10 +165,12 @@ class TransactionsCsvForm(ABForm):
             ),
         ]
         self.db = DBManager()
+        self.text_classifier = TextClassifier()
         super().__init__(self.form, self.form_fields)
         super().create_form()
 
     def infer_category(self, row, categories):
+        # TODO: make this take all rows, and batch process
         print(f"Category: {row['Category']}, description: {row['Description']}")
         if row["Category"] in categories:
             print(
@@ -195,13 +197,61 @@ class TransactionsCsvForm(ABForm):
             print(f"Using default category for {row['Description']}: Other")
             return ("Other", False)
         # use NLP to infer category
-        nlp = pipeline("zero-shot-classification")
-        candidate_labels = categories
-        results = nlp(row["Description"], candidate_labels)
-        print(results)
-        result = results["labels"][0]
-        print(f"Inferred category for {row['Description']}: {result}")
+        # nlp = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
+        # candidate_labels = categories
+        # results = nlp(row["Description"], candidate_labels)
+        # print(results)
+        # result = results["labels"][0]
+        # print(f"Inferred category for {row['Description']}: {result}")
+        result = self.text_classifier.predict(row["Description"], categories)
         return (result, True)
+
+    def infer_categories(self, df, categories):
+        """
+        Auto fill the category column when missing.
+        If the category is already in the db, use that
+        If the code is the same as a previous transaction, use that category
+        Otherwise, use NLP to infer category
+        """
+        descriptions_to_infer = {}
+        df["Inferred_Category"] = 0  # 0 = not inferred, 1 = inferred
+        for i, row in df.iterrows():
+            if row["Category"] in categories:
+                # already correct, do nothing
+                row["Inferred_Category"] = 0
+                continue
+            code = row["Code"]
+            # if previous transaction has same code, use that category
+            prev_category = self.db.select(
+                """
+                    SELECT category FROM transactions
+                    WHERE code = ? AND category != 'Other'
+                    ORDER BY date DESC
+                    LIMIT 1
+                """,
+                [code],
+            )
+            if prev_category:
+                # use previous category
+                row["Inferred_Category"] = 1
+                row["Category"] = prev_category[0][0]
+            elif not row["Description"]:
+                # No information to infer category, use default
+                row["Inferred_Category"] = 0
+                row["Category"] = "Other"
+            else:
+                row["Inferred_Category"] = 1
+                descriptions_to_infer[i] = row["Description"]
+        # batch process rows to infer
+        print(f"{len(descriptions_to_infer)} descriptions to infer")
+        descriptions = list(descriptions_to_infer.values())
+        results = self.text_classifier.predict_batch(descriptions, categories)
+        for i, row in df.iterrows():
+            if i in descriptions_to_infer:
+                result = results.pop(0)
+                print(f"Inferred category for {row['Description']}: {result}")
+                row["Category"] = result
+        return df
 
     def on_success(self) -> (bool, str):
         data = self.form_fields[0].get_value()
@@ -247,7 +297,7 @@ class TransactionsCsvForm(ABForm):
                     INSERT OR IGNORE INTO categories (category)
                     VALUES (?)
                 """,
-                [(category,) for category in categories],
+                [(category,) for category in categories if not pd.isnull(category)],
             )
 
             categories = [
@@ -258,12 +308,14 @@ class TransactionsCsvForm(ABForm):
             data = []
             cols = expected_columns + auto_added_columns
             # insert into db
-            for _, row in df.iterrows():
-                category, was_inferred = self.infer_category(row, categories)
-                row["Category"] = category
-                row["Inferred_Category"] = 1 if was_inferred else 0
-                row_data = tuple(row[col] for col in cols)
-                data.append(row_data)
+            # for _, row in df.iterrows():
+            #     category, was_inferred = self.infer_category(row, categories)
+            #     row["Category"] = category
+            #     row["Inferred_Category"] = 1 if was_inferred else 0
+            #     row_data = tuple(row[col] for col in cols)
+            #     data.append(row_data)
+
+            df = self.infer_categories(df, categories)
             try:
                 self.db.insert_many(
                     f"""
@@ -273,8 +325,10 @@ class TransactionsCsvForm(ABForm):
                     data,
                 )
                 self.clear_form()
+                print("Successfully added transactions")
                 return (True, "Successfully added transactions")
             except Error as e:
+                print(e)
                 return (False, str(e))
 
 
