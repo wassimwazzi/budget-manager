@@ -1,4 +1,5 @@
 import tkinter as tk
+import threading
 from abc import ABC, abstractmethod
 from sqlite3 import Error
 import pandas as pd
@@ -213,6 +214,8 @@ class TransactionsCsvForm(ABForm):
         If the code is the same as a previous transaction, use that category
         Otherwise, use NLP to infer category
         """
+        # print thread id
+        print(f"Thread id: {threading.get_ident()}")
         descriptions_to_infer = {}
         df["Inferred_Category"] = 0  # 0 = not inferred, 1 = inferred
         for i, row in df.iterrows():
@@ -253,8 +256,7 @@ class TransactionsCsvForm(ABForm):
                 row["Category"] = result
         return df
 
-    def on_success(self) -> (bool, str):
-        data = self.form_fields[0].get_value()
+    def create_data_from_csv(self, data):
         with open(data, "r", encoding="utf-8") as f:
             df = pd.read_csv(f)
             # validate column namesC
@@ -330,6 +332,16 @@ class TransactionsCsvForm(ABForm):
             except Error as e:
                 print(e)
                 return (False, str(e))
+
+    def on_success(self) -> (bool, str):
+        data = self.form_fields[0].get_value()
+        print("Thread id: ", threading.get_ident())
+        # parse csv in a separate thread
+        thread = threading.Thread(
+            target=self.create_data_from_csv, args=(data,), daemon=True
+        )
+        thread.start()
+        return (True, "Successfully submited file: " + data)
 
 
 class GenerateMonthlySummaryForm(ABForm):

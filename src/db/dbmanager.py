@@ -18,61 +18,70 @@ class DBManager:
     SCHEMA = "src/db/schema.sql"
 
     def __init__(self):
-        self.conn = None
         self.db = DBManager.DATABASE
+
+    def _connect(self):
         try:
-            self.conn = sqlite3.connect(self.db)
+            return sqlite3.connect(self.db)
         except Error as e:
             print(e)
+            return None
 
     def setup(self):
+        conn = self._connect()
         with open(DBManager.SCHEMA, "r", encoding="utf-8") as f:
             schema = f.read()
-            cur = self.conn.cursor()
+            cur = conn.cursor()
             cur.executescript(schema)
-            self.conn.commit()
+            conn.commit()
 
-    def __del__(self):
-        self.conn.close()
+    # def __del__(self):
+    #     self.conn.close()
 
-    def __enter__(self):
-        return self
+    # def __enter__(self):
+    #     return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
-        self.conn.close()
+    # def __exit__(self, exc_type, exc_value, traceback):
+    #     self.conn.close()
 
     # @throws_db_error
     def create_table(self, create_table_sql):
-        c = self.conn.cursor()
+        conn = self._connect()
+        c = conn.cursor()
         c.execute(create_table_sql)
 
     # @throws_db_error
     def insert(self, sql, data):
-        c = self.conn.cursor()
+        conn = self._connect()
+        c = conn.cursor()
         c.execute(sql, data)
-        self.conn.commit()
+        conn.commit()
         return c.lastrowid
 
     def insert_many(self, sql, data):
-        c = self.conn.cursor()
+        conn = self._connect()
+        c = conn.cursor()
         c.executemany(sql, data)
-        self.conn.commit()
+        conn.commit()
         return c.lastrowid
 
     # @throws_db_error
     def select(self, sql, data):
-        c = self.conn.cursor()
+        conn = self._connect()
+        c = conn.cursor()
         c.execute(sql, data)
         return c.fetchall()
 
     # @throws_db_error
     def update(self, sql, data):
-        c = self.conn.cursor()
+        conn = self._connect()
+        c = conn.cursor()
         c.execute(sql, data)
-        self.conn.commit()
+        conn.commit()
 
     # @throws_db_error
     def delete(self, sql, data):
-        c = self.conn.cursor()
+        conn = self._connect()
+        c = conn.cursor()
         c.execute(sql, data)
-        self.conn.commit()
+        conn.commit()
