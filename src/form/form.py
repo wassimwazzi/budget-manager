@@ -86,7 +86,7 @@ class ABForm(ABC):
         if is_success:
             success, message = self.on_success()
             if success:
-                self.clear_form()
+                # self.clear_form()
                 self.form_message_label.config(text=message, fg=ABForm.SUCCESS_COLOR)
             else:
                 self.form_message_label.config(text=message, fg=ABForm.ERROR_COLOR)
@@ -220,10 +220,10 @@ class TransactionsCsvForm(ABForm):
                     """,
                     data,
                 )
+                self.clear_form()
                 return (True, "Successfully added transactions")
             except Error as e:
                 return (False, str(e))
-
 
 class GenerateMonthlySummaryForm(ABForm):
     def __init__(self, master: tk.Tk):
