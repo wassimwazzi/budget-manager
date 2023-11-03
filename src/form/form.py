@@ -11,6 +11,7 @@ from src.form.fields import (
     UploadFileField,
 )
 from src.db.dbmanager import DBManager
+from transformers import pipeline
 
 
 class ABForm(ABC):
@@ -114,7 +115,10 @@ class TransactionForm(ABForm):
         self.form.pack(pady=20)
         self.db = DBManager()
         self.categories = [
-            c[0] for c in self.db.select("SELECT category FROM categories  ORDER BY category ASC", [])
+            c[0]
+            for c in self.db.select(
+                "SELECT category FROM categories  ORDER BY category ASC", []
+            )
         ]
         self.form_fields = [
             DateField("Date (YYYY-MM-DD)", True, self.form),
@@ -164,6 +168,41 @@ class TransactionsCsvForm(ABForm):
         super().__init__(self.form, self.form_fields)
         super().create_form()
 
+    def infer_category(self, row, categories):
+        print(f"Category: {row['Category']}, description: {row['Description']}")
+        if row["Category"] in categories:
+            print(
+                f"Using existing category for {row['Description']}: {row['Category']}"
+            )
+            return row["Category"]
+        code = row["Code"]
+        # if previous transaction has same code, use that category
+        prev_category = self.db.select(
+            """
+                SELECT category FROM transactions
+                WHERE code = ? AND category != 'Other'
+                ORDER BY date DESC
+                LIMIT 1
+            """,
+            [code],
+        )
+        if prev_category:
+            print(
+                f"Using previous category for {row['Description']}: {prev_category[0][0]}"
+            )
+            return prev_category[0][0]
+        if not row["Description"]:
+            print(f"Using default category for {row['Description']}: Other")
+            return "Other"
+        # use NLP to infer category
+        nlp = pipeline("zero-shot-classification")
+        candidate_labels = categories
+        results = nlp(row["Description"], candidate_labels)
+        print(results)
+        result = results["labels"][0]
+        print(f"Inferred category for {row['Description']}: {result}")
+        return result
+
     def on_success(self) -> (bool, str):
         data = self.form_fields[0].get_value()
         with open(data, "r", encoding="utf-8") as f:
@@ -189,6 +228,7 @@ class TransactionsCsvForm(ABForm):
             # convert dates to YYYY-MM-DD string
             df["Date"] = df["Date"].apply(lambda x: x.strftime("%Y-%m-%d"))
 
+            df["Code"] = df["Code"].apply(lambda x: str(x) if not pd.isnull(x) else "")
             # validate category
             # categories = self.db.select("SELECT category FROM categories", [])
             # categories = [category[0] for category in categories]
@@ -196,20 +236,28 @@ class TransactionsCsvForm(ABForm):
             #     return (False, f"Invalid category, must be one of {categories}")
 
             # create category if not exists
-            df["Category"] = df["Category"].apply(lambda x: str(x).title() if not pd.isnull(x) else '')
+            df["Category"] = df["Category"].apply(
+                lambda x: str(x).title() if not pd.isnull(x) else x
+            )
             categories = set(df["Category"])
-            for category in categories:
-                self.db.insert(
-                    """
-                        INSERT OR IGNORE INTO categories (category)
-                        VALUES (?)
-                    """,
-                    (category,),
-                )
+
+            self.db.insert_many(
+                """
+                    INSERT OR IGNORE INTO categories (category)
+                    VALUES (?)
+                """,
+                [(category,) for category in categories],
+            )
+
+            categories = [
+                category[0]
+                for category in self.db.select("SELECT category FROM categories", [])
+            ]
 
             data = []
             # insert into db
             for _, row in df.iterrows():
+                row["Category"] = self.infer_category(row, categories)
                 row_data = tuple(row[col] for col in expected_columns)
                 data.append(row_data)
             try:
@@ -224,6 +272,7 @@ class TransactionsCsvForm(ABForm):
                 return (True, "Successfully added transactions")
             except Error as e:
                 return (False, str(e))
+
 
 class GenerateMonthlySummaryForm(ABForm):
     def __init__(self, master: tk.Tk):

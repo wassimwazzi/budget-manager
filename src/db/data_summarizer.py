@@ -23,7 +23,6 @@ def get_transactions_df():
     transactions = db.select(
         "SELECT date, description, amount, category, code FROM transactions", []
     )
-    (transactions)
     df = pd.DataFrame(
         transactions,
         columns=["date", "description", "amount", "category", "code"],
