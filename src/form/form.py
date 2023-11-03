@@ -259,7 +259,7 @@ class TransactionsCsvForm(ABForm):
     def create_data_from_csv(self, data):
         with open(data, "r", encoding="utf-8") as f:
             df = pd.read_csv(f)
-            # validate column namesC
+            # validate column names
             expected_columns = ["Date", "Description", "Amount", "Category", "Code"]
             auto_added_columns = ["Inferred_Category"]
             if not all(col in df.columns for col in expected_columns):
@@ -319,12 +319,20 @@ class TransactionsCsvForm(ABForm):
 
             df = self.infer_categories(df, categories)
             try:
+                # TODO: make this a transaction
                 self.db.insert_many(
                     f"""
                         INSERT INTO transactions ({', '.join(cols)})
                         VALUES ({', '.join(['?'] * len(cols))})
                     """,
                     data,
+                )
+                self.db.insert(
+                    """
+                        INSERT INTO FILES (name, date)
+                        VALUES (?, ?)
+                    """,
+                    [data, pd.Timestamp.today()],
                 )
                 self.clear_form()
                 print("Successfully added transactions")
