@@ -98,7 +98,7 @@ def get_monthly_income_df():
 def get_budget_summary_plt(month):
     df = get_budget_summary_df(month)
 
-    fig, ax = plt.subplots(figsize=(12, 6))  # Adjust the figure size as needed
+    fig, ax = plt.subplots()  # Adjust the figure size as needed
 
     # Create a bar chart of the budget vs. actual for each category
     width = 0.4

@@ -1,11 +1,11 @@
 import tkinter as tk
 from tkinter import ttk
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from src.form.form import (
     TransactionForm,
     TransactionsCsvForm,
     GenerateMonthlySummaryForm,
 )
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from src.db.data_summarizer import (
     get_transactions_df,
     get_budget_summary_df,

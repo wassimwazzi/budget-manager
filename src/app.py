@@ -1,4 +1,6 @@
 import tkinter as tk
+from tkinter import messagebox
+import matplotlib.pyplot as plt
 from screeninfo import get_monitors
 from src.pages import HomePage, DataEntryPage
 from src.nav import NavFrame
@@ -9,7 +11,7 @@ PAGES = [HomePage, DataEntryPage]  # first page is the default page
 class BudgetApp(tk.Tk):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.minsize(*self.get_display_size())
+        # self.minsize(*self.get_display_size())
         container = tk.Frame(self)
         container.pack(side="top", fill="both", expand=True)
         container.grid_rowconfigure(0, weight=1)
@@ -42,4 +44,9 @@ class BudgetApp(tk.Tk):
 
 def run():
     app = BudgetApp()
+    def on_closing():
+        if messagebox.askokcancel("Quit", "Do you want to quit?"):
+            app.destroy()
+            plt.close("all")
+    app.protocol("WM_DELETE_WINDOW", on_closing)
     app.mainloop()

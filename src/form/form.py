@@ -114,7 +114,7 @@ class TransactionForm(ABForm):
         self.form.pack(pady=20)
         self.db = DBManager()
         self.categories = [
-            c[0] for c in self.db.select("SELECT category FROM categories", [])
+            c[0] for c in self.db.select("SELECT category FROM categories  ORDER BY category ASC", [])
         ]
         self.form_fields = [
             DateField("Date (YYYY-MM-DD)", True, self.form),
@@ -196,6 +196,7 @@ class TransactionsCsvForm(ABForm):
             #     return (False, f"Invalid category, must be one of {categories}")
 
             # create category if not exists
+            df["Category"] = df["Category"].apply(lambda x: str(x).title() if not pd.isnull(x) else '')
             categories = set(df["Category"])
             for category in categories:
                 self.db.insert(
