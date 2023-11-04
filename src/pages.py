@@ -19,6 +19,9 @@ class ABPage(tk.Frame, ABC):
     def __init__(self, parent):
         super().__init__(parent)
         self.parent = parent
+        # Create a frame for the page that will be used, and can be destroyed and recreated
+        self.frame = tk.Frame(self)
+        self.frame.pack(fill="both", expand=True)
         self.was_setup = False
 
     def clicked(self):
@@ -34,6 +37,12 @@ class ABPage(tk.Frame, ABC):
     def on_click(self):
         pass
 
+    def refresh(self):
+        # remove all widgets from the frame
+        for widget in self.frame.winfo_children():
+            widget.destroy()
+        self.setup()
+
 
 class DataEntry(ABPage):
     def setup(self):
@@ -41,11 +50,9 @@ class DataEntry(ABPage):
         TransactionsCsvForm(self)
 
 
-
 class Home(ABPage):
     def __init__(self, parent):
         super().__init__(parent)
-        self.parent = parent
         self.budget_frames = []
         # self.setup()
 
@@ -57,7 +64,7 @@ class Home(ABPage):
         if self.budget_frames:
             for frame in self.budget_frames:
                 frame.destroy()
-        upper_frame = tk.Frame(self)
+        upper_frame = tk.Frame(self.frame)
         self.budget_frames.append(upper_frame)
         upper_frame.pack(fill="both", expand=True)
         upper_frame.pack(pady=10)
@@ -85,31 +92,21 @@ class Home(ABPage):
         canvas.get_tk_widget().pack(side="right", fill="both", expand=True)
 
     def setup(self):
-        form = GenerateMonthlySummaryForm(self)
+        form = GenerateMonthlySummaryForm(self.frame)
         form.register_listener(self)
 
 
 class Transactions(ABPage):
-    def __init__(self, parent):
-        super().__init__(parent)
-        self.parent = parent
-        self.transactions_frame = None
-        self.tree = None
-        # self.setup()
-
     def show_transactions(self):
         df = get_transactions_df()
-        if self.transactions_frame:
-            self.transactions_frame.destroy()
         # Create a Treeview widget to display the DataFrame
-        self.transactions_frame = tk.Frame(self)
-        self.transactions_frame.pack(fill="both", expand=True)
+        transactions_frame = tk.Frame(self.frame)
+        transactions_frame.pack(fill="both", expand=True)
         cols = list(df.columns)
         tree = ttk.Treeview(
-            self.transactions_frame, columns=cols + ["Edit", "Delete"], show="headings"
+            transactions_frame, columns=cols + ["Edit", "Delete"], show="headings"
         )
 
-        self.tree = tree
         # Add column headings
         for col in cols:
             tree.heading(col, text=col)
@@ -153,22 +150,12 @@ class Transactions(ABPage):
         entry.bind("<Return>", lambda event: self.update_cell(event, item, clicked_col))
         entry.bind("<Escape>", lambda event: self.cancel_edit(event, item, clicked_col))
 
-    def cancel_edit(self, event, item, clicked_col):
-        self.tree.delete(self.tree.focus())
-
-    def update_cell(self, event, item, clicked_col):
-        new_value = event.widget.get()
-        event.widget.set(item, column=clicked_col, value=new_value)
-        event.widget.destroy()
-
     def setup(self):
         # create a bar with filters and refresh button
-        filter_frame = tk.Frame(self)
+        filter_frame = tk.Frame(self.frame)
         filter_frame.pack(pady=10)
         # create a button to refresh the transactions
-        refresh_button = tk.Button(
-            filter_frame, text="Refresh", command=self.show_transactions
-        )
+        refresh_button = tk.Button(filter_frame, text="Refresh", command=self.refresh)
         refresh_button.pack(side="right")
         # dropdown to allow to filter by each column
         df = get_transactions_df()
