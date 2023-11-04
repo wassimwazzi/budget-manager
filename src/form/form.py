@@ -25,7 +25,12 @@ class ABForm(ABC):
     VALID_COLOR = "SystemButtonFace"
 
     def __init__(
-        self, form: tk.Frame, form_fields: list[FormField], submit_text="Submit"
+        self,
+        form: tk.Frame,
+        form_fields: list[FormField],
+        form_title: str,
+        submit_text="Submit",
+        action_buttons: list[tk.Button] = None,
     ):
         self.form_fields = form_fields
         self.submit_text = submit_text
@@ -33,12 +38,61 @@ class ABForm(ABC):
             tk.Label(form, text="", font=("Arial", 10), fg=ABForm.ERROR_COLOR)
             for _ in form_fields
         ]
-        self.form_message_label = tk.Label(form, text="", font=("Arial", 10))
+        self.form_message_label = tk.Label(form, text="", font=("Arial", 15))
         self.form = form
         self.form.pack(pady=20)
+        if not action_buttons:
+            action_buttons = [
+                tk.Button(
+                    form,
+                    text="Submit",
+                    command=self.submit,
+                    font=("Arial", 12),
+                    bg="white",
+                )
+            ]
+        self.action_buttons = action_buttons
+        self.form_title = form_title
 
     def create_form(self):
-        for i, form_field in enumerate(self.form_fields):
+        self.set_form_title()
+        self.set_form_inputs_layout()
+        self.set_action_buttons_layout()
+
+        self.form_message_label.grid(
+            row=len(self.form_fields) * 2 + 1, columnspan=3, padx=20
+        )
+
+    def set_form_title(self):
+        tk.Label(
+            self.form,
+            text=self.form_title,
+            font=("Arial", 20),
+            fg="white",
+            bg="#2a2a2a",
+        ).grid(row=0, padx=20, pady=20)
+
+    def set_action_buttons_layout(self):
+        input_row_offset = 1
+        input_row_elements = 2
+        for i, button in enumerate(self.action_buttons):
+            columnspan = 3 // len(self.action_buttons)
+            button.grid(
+                row=len(self.form_fields) * input_row_elements
+                + input_row_offset
+                + input_row_elements,
+                column=i,
+                padx=20,
+                pady=5,
+                columnspan=columnspan,
+            )
+
+    def set_form_inputs_layout(self):
+        """
+        Default layout is vertical.
+        Override this method to change the layout of the form
+        """
+        for i, form_field in enumerate(self.form_fields, start=1):
             field_name = form_field.get_name()
             tk_label = tk.Label(
                 self.form, text=field_name, font=("Arial", 12), fg="white"
@@ -50,19 +104,9 @@ class ABForm(ABC):
                 highlightcolor=ABForm.VALID_COLOR,
             )
             tk_field.grid(row=i * 2, column=1, padx=10, pady=10, sticky="w")
-            self.error_labels[i].grid(row=i * 2 + 1, column=1, padx=10)
+            self.error_labels[i - 1].grid(row=i * 2 + 1, column=1, padx=10)
 
-        submit_button = tk.Button(
-            self.form,
-            text=self.submit_text,
-            command=self.submit,
-            font=("Arial", 12),
-            bg="white",
-        )
-        submit_button.grid(row=len(self.form_fields) * 2, columnspan=3, padx=20, pady=5)
-        self.form_message_label.grid(
-            row=len(self.form_fields) * 2 + 1, columnspan=3, padx=20
-        )
+        self.form_message_label.grid(row=4, columnspan=len(self.form_fields), padx=20)
 
     def submit(self):
         is_success = True
@@ -128,7 +172,7 @@ class TransactionForm(ABForm):
             TextField("Code", False, self.form),
             DropdownField("Category", True, self.categories, self.form),
         ]
-        super().__init__(self.form, self.form_fields)
+        super().__init__(self.form, self.form_fields, "Add Transaction")
         super().create_form()
 
     def on_success(self) -> (bool, str):
@@ -167,7 +211,7 @@ class TransactionsCsvForm(ABForm):
         ]
         self.db = DBManager()
         self.text_classifier = SimpleClassifier()
-        super().__init__(self.form, self.form_fields)
+        super().__init__(self.form, self.form_fields, "Upload CSV")
         super().create_form()
 
     def infer_category(self, row, categories):
@@ -353,7 +397,10 @@ class GenerateMonthlySummaryForm(ABForm):
         self.db = DBManager()
         self.listeners = []
         super().__init__(
-            self.form, self.form_fields, submit_text="Generate Monthly Summary"
+            self.form,
+            self.form_fields,
+            "Generate Monthly Summary",
+            submit_text="Generate Monthly Summary",
         )
         super().create_form()
 
