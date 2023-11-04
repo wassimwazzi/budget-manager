@@ -29,11 +29,9 @@ class ABForm(ABC):
         form: tk.Frame,
         form_fields: list[FormField],
         form_title: str,
-        submit_text="Submit",
         action_buttons: list[tk.Button] = None,
     ):
         self.form_fields = form_fields
-        self.submit_text = submit_text
         self.error_labels = [
             tk.Label(form, text="", font=("Arial", 10), fg=ABForm.ERROR_COLOR)
             for _ in form_fields
@@ -97,7 +95,7 @@ class ABForm(ABC):
         :param i: the row number of the form field. Starts at 1
         :param form_field: the form field to layout
         """
-        field_name = form_field.get_name()
+        field_name = form_field.get_display_name()
         tk_label = tk.Label(self.form, text=field_name, font=("Arial", 12), fg="white")
         tk_label.grid(row=i * 2, column=0, sticky="w", padx=10, pady=10)
         tk_field = form_field.get_tk_field()
@@ -148,69 +146,12 @@ class ABForm(ABC):
             )
             error_label.config(text="")
 
+    def get_form_fields(self) -> list[FormField]:
+        return self.form_fields
+
     @abstractmethod
     def on_success(self) -> (bool, str):
         pass
-
-
-class TransactionForm(ABForm):
-    def __init__(self, master: tk.Tk):
-        self.master = master
-        self.form = tk.Frame(self.master)
-        self.form.pack(pady=20)
-        self.db = DBManager()
-        self.categories = [
-            c[0]
-            for c in self.db.select(
-                "SELECT category FROM categories  ORDER BY category ASC", []
-            )
-        ]
-        self.form_fields = [
-            DateField("Date (YYYY-MM-DD)", True, self.form),
-            TextField("Description", True, self.form),
-            NumberField("Amount", True, self.form),
-            TextField("Code", False, self.form),
-            DropdownField("Category", True, self.categories, self.form),
-        ]
-        super().__init__(self.form, self.form_fields, "Add Transaction")
-        super().create_form()
-
-    def on_success(self) -> (bool, str):
-        # Data is valid, proceed with insertion
-        data = [field.get_value() for field in self.form_fields]
-        try:
-            self.db.insert(
-                """
-                    INSERT INTO transactions (date, description, amount, category, code)
-                    VALUES (?, ?, ?, ?, ?)
-                """,
-                data,
-            )
-        except Error as e:
-            return (False, str(e))
-        return (True, "Successfully added transaction")
-
-    def set_form_input_layout(self, i, form_field):
-        # i is the row number of the form field. Starts at 1
-        # Show three inputs per row, or 2 if not enough.
-        # Entry under label, error label under entry
-        field_name = form_field.get_name()
-        row_position = (i - 1) // 3  # 0 indexed
-        tk_label = tk.Label(self.form, text=field_name, font=("Arial", 12), fg="white")
-        tk_label.grid(
-            row=row_position * 3 + 1, column=(i - 1) % 3, sticky="w", padx=5, pady=10
-        )
-        tk_field = form_field.get_tk_field()
-        tk_field.config(
-            highlightbackground=ABForm.VALID_COLOR,
-            highlightcolor=ABForm.VALID_COLOR,
-        )
-        tk_field.grid(
-            row=row_position * 3 + 2, column=(i - 1) % 3, padx=10, pady=10, sticky="w"
-        )
-        self.error_labels[i - 1].grid(
-            row=row_position * 3 + 3, column=(i - 1) % 3, padx=10
-        )
 
 
 class TransactionsCsvForm(ABForm):
@@ -220,7 +161,7 @@ class TransactionsCsvForm(ABForm):
         self.form.pack(pady=20)
         self.form_fields = [
             UploadFileField(
-                "CSV File",
+                "filename",
                 True,
                 self.form,
                 # mac numbers csv
@@ -229,6 +170,7 @@ class TransactionsCsvForm(ABForm):
                     ("Excel Files", "*.xlsx"),
                     # ("Mac numbers", "*.numbers"),
                 ],
+                display_name="CSV File",
             ),
         ]
         self.db = DBManager()
@@ -414,16 +356,17 @@ class GenerateMonthlySummaryForm(ABForm):
         self.form = tk.Frame(self.master)
         self.form.pack(pady=20)
         self.form_fields = [
-            DateField("Month (YYYY-MM)", True, self.form, date_format="YYYY-MM")
+            DateField(
+                "month",
+                True,
+                self.form,
+                date_format="YYYY-MM",
+                display_name="Month (YYYY-MM)",
+            )
         ]
         self.db = DBManager()
         self.listeners = []
-        super().__init__(
-            self.form,
-            self.form_fields,
-            "Generate Monthly Summary",
-            submit_text="Generate Monthly Summary",
-        )
+        super().__init__(self.form, self.form_fields, "Generate Monthly Summary")
         super().create_form()
 
     def register_listener(self, listener):
@@ -434,3 +377,178 @@ class GenerateMonthlySummaryForm(ABForm):
         for listener in self.listeners:
             listener.notify(month)
         return (True, "Successfully generated summary")
+
+
+class EditTransactionForm(ABForm):
+    def __init__(self, master: tk.Tk, transaction_id: int):
+        self.master = master
+        self.form = tk.Frame(self.master)
+        self.form.pack(pady=20)
+        self.db = DBManager()
+        self.categories = [
+            c[0]
+            for c in self.db.select(
+                "SELECT category FROM categories  ORDER BY category ASC", []
+            )
+        ]
+        self.form_fields = [
+            DateField("date", True, self.form, display_name="Date (YYYY-MM-DD)"),
+            TextField("description", True, self.form, display_name="Description"),
+            NumberField("amount", True, self.form, display_name="Amount"),
+            TextField("code", False, self.form, display_name="Code"),
+            DropdownField(
+                "category", True, self.categories, self.form, display_name="Category"
+            ),
+        ]
+        self.action_buttons = [
+            tk.Button(
+                self.form,
+                text="Update",
+                command=self.submit,
+                font=("Arial", 12),
+                bg="white",
+            ),
+            tk.Button(
+                self.form,
+                text="Delete",
+                command=self.delete,
+                font=("Arial", 12),
+                bg="white",
+            ),
+        ]
+        self.transaction_id = transaction_id
+        super().__init__(
+            self.form,
+            self.form_fields,
+            "Edit Transaction",
+            action_buttons=self.action_buttons,
+        )
+        super().create_form()
+
+    def on_success(self) -> (bool, str):
+        if not self.transaction_id:
+            return (False, "Invalid transaction id")
+        # Data is valid, proceed with insertion
+        data = {}
+        for field in self.form_fields:
+            data[field.get_name()] = field.get_value()
+        try:
+            statement = f""" 
+                    UPDATE transactions
+                    SET date = '{data["date"]}', description = '{data["description"]}',
+                        amount = {data["amount"]}, category = '{data["category"]}', code = '{data["code"]}', inferred_category = 0
+                    WHERE id = {self.transaction_id}
+            """
+
+            self.db.update(statement, [])
+        except Error as e:
+            return (False, str(e))
+        return (True, "Successfully updated transaction")
+
+    def set_form_input_layout(self, i, form_field):
+        # i is the row number of the form field. Starts at 1
+        # Show three inputs per row, or 2 if not enough.
+        # Entry under label, error label under entry
+        field_name = form_field.get_display_name()
+        row_position = (i - 1) // 3  # 0 indexed
+        tk_label = tk.Label(self.form, text=field_name, font=("Arial", 12), fg="white")
+        tk_label.grid(
+            row=row_position * 3 + 1, column=(i - 1) % 3, sticky="w", padx=5, pady=10
+        )
+        tk_field = form_field.get_tk_field()
+        tk_field.config(
+            highlightbackground=ABForm.VALID_COLOR,
+            highlightcolor=ABForm.VALID_COLOR,
+        )
+        tk_field.grid(
+            row=row_position * 3 + 2, column=(i - 1) % 3, padx=10, pady=10, sticky="w"
+        )
+        self.error_labels[i - 1].grid(
+            row=row_position * 3 + 3, column=(i - 1) % 3, padx=10
+        )
+
+    def delete(self):
+        if not self.transaction_id:
+            self.form_message_label.config(
+                text="Invalid transaction id", fg=ABForm.ERROR_COLOR
+            )
+            return
+        self.db.delete(
+            """
+                DELETE FROM transactions
+                WHERE id = ?
+            """,
+            [self.transaction_id],
+        )
+        self.clear_form()
+        self.form_message_label.config(
+            text="Successfully deleted row", fg=ABForm.SUCCESS_COLOR
+        )
+
+
+class AddTransactionForm(ABForm):
+    def __init__(self, master: tk.Tk):
+        self.master = master
+        self.form = tk.Frame(self.master)
+        self.form.pack(pady=20)
+        self.db = DBManager()
+        self.categories = [
+            c[0]
+            for c in self.db.select(
+                "SELECT category FROM categories  ORDER BY category ASC", []
+            )
+        ]
+        self.form_fields = [
+            DateField("date", True, self.form, display_name="Date (YYYY-MM-DD)"),
+            TextField("description", True, self.form, display_name="Description"),
+            NumberField("amount", True, self.form, display_name="Amount"),
+            TextField("code", False, self.form, display_name="Code"),
+            DropdownField(
+                "category", True, self.categories, self.form, display_name="Category"
+            ),
+        ]
+        super().__init__(self.form, self.form_fields, "Add Transaction")
+        super().create_form()
+
+    def on_success(self) -> (bool, str):
+        # Data is valid, proceed with insertion
+        data = {}
+        for field in self.form_fields:
+            data[field.get_name()] = field.get_value()
+        data["inferred_category"] = 0
+        cols = ["date", "description", "amount", "category", "code"]
+        data = [data[col] for col in cols]
+        data.append(0)  # inferred category
+        try:
+            self.db.insert(
+                f"""
+                    INSERT INTO transactions ({', '.join(cols)}, inferred_category)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                data,
+            )
+        except Error as e:
+            return (False, str(e))
+        return (True, "Successfully added transaction")
+
+    def set_form_input_layout(self, i, form_field):
+        # i is the row number of the form field. Starts at 1
+        # Show three inputs per row, or 2 if not enough.
+        # Entry under label, error label under entry
+        field_name = form_field.get_display_name()
+        row_position = (i - 1) // 3  # 0 indexed
+        tk_label = tk.Label(self.form, text=field_name, font=("Arial", 12), fg="white")
+        tk_label.grid(
+            row=row_position * 3 + 1, column=(i - 1) % 3, sticky="w", padx=5, pady=10
+        )
+        tk_field = form_field.get_tk_field()
+        tk_field.config(
+            highlightbackground=ABForm.VALID_COLOR,
+            highlightcolor=ABForm.VALID_COLOR,
+        )
+        tk_field.grid(
+            row=row_position * 3 + 2, column=(i - 1) % 3, padx=10, pady=10, sticky="w"
+        )
+        self.error_labels[i - 1].grid(
+            row=row_position * 3 + 3, column=(i - 1) % 3, padx=10
+        )

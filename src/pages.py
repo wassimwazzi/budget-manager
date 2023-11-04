@@ -3,9 +3,10 @@ from tkinter import ttk
 from abc import ABC, abstractmethod
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from src.form.form import (
-    TransactionForm,
+    AddTransactionForm,
     TransactionsCsvForm,
     GenerateMonthlySummaryForm,
+    EditTransactionForm,
 )
 from src.db.data_summarizer import (
     get_transactions_df,
@@ -37,16 +38,19 @@ class ABPage(tk.Frame, ABC):
     def on_click(self):
         pass
 
-    def refresh(self):
+    def clear(self):
         # remove all widgets from the frame
         for widget in self.frame.winfo_children():
             widget.destroy()
+
+    def refresh(self):
+        self.clear()
         self.setup()
 
 
 class DataEntry(ABPage):
     def setup(self):
-        TransactionForm(self)
+        AddTransactionForm(self)
         TransactionsCsvForm(self)
 
 
@@ -97,19 +101,33 @@ class Home(ABPage):
 
 
 class Transactions(ABPage):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.transactions_form_frame = None
+        self.transactions_form = None
+        self.transactions_df = None
+
     def show_transactions(self):
-        df = get_transactions_df()
+        if self.transactions_df is None:
+            self.transactions_df = get_transactions_df()
         # Create a Treeview widget to display the DataFrame
         transactions_frame = tk.Frame(self.frame)
         transactions_frame.pack(fill="both", expand=True)
-        cols = list(df.columns)
+        cols = [
+            "date",
+            "description",
+            "amount",
+            "category",
+            "code",
+            "inferred category",
+        ]
         tree = ttk.Treeview(
             transactions_frame, columns=cols + ["Edit", "Delete"], show="headings"
         )
 
         # Add column headings
         for col in cols:
-            tree.heading(col, text=col)
+            tree.heading(col, text=col.title())
             tree.column(col, width=100)
         tree.heading("Edit", text="")
         tree.column("Edit", width=100)
@@ -118,8 +136,10 @@ class Transactions(ABPage):
 
         # Insert data into the Treeview
         # add edit and delete buttons to each row
-        for _, row in df.iterrows():
-            tree.insert("", "end", values=list(row) + ["Edit", "Delete"])
+        for _, row in self.transactions_df.iterrows():
+            # make sure row values are in same order as columns
+            row_values = [row[col] for col in cols]
+            tree.insert("", "end", values=row_values + ["Edit", "Delete"])
 
         # # Add buttons to each row
         # for item in tree.get_children():
@@ -127,30 +147,32 @@ class Transactions(ABPage):
         #     tree.item(item, values=row_values + [None, None], tags=(item,))
 
         tree.pack(side="left", fill="both", expand=True)
-        tree.bind("<Double-Button-1>", self.edit_transaction)
+        tree.bind("<Button-1>", self.edit_transaction)
 
     def edit_transaction(self, event):
-        item = event.widget.selection()[0]
-        row_vals = event.widget.item(item)["values"]
-        clicked_col = event.widget.identify_column(event.x)
-        cell_value = event.widget.item(item)["values"][
-            int(clicked_col[1:]) - 1
-        ]  # The value of the cell clicked
-        # cell_value = self.tree.item(item, "values")[int(clicked_col) - 1]
+        selected_row = event.widget.selection()
+        if not selected_row:
+            # q: why is this sometimes empty?
+            return
+        selected_row = selected_row[0]
+        # clear the form frame
+        for widget in self.transactions_form_frame.winfo_children():
+            widget.destroy()
 
-        entry = tk.Entry(event.widget, width=10)
-        # place entry on top of cell clicked
-        entry.place(
-            x=event.x,
-            y=event.y,
-            width=entry.winfo_reqwidth(),
-            height=entry.winfo_reqheight(),
+        row_id = event.widget.index(selected_row)
+        transaction_id = self.transactions_df.loc[int(row_id)]["id"]
+        self.transactions_form = EditTransactionForm(
+            self.transactions_form_frame, transaction_id
         )
-        entry.focus_set()
-        entry.bind("<Return>", lambda event: self.update_cell(event, item, clicked_col))
-        entry.bind("<Escape>", lambda event: self.cancel_edit(event, item, clicked_col))
+        fields = self.transactions_form.get_form_fields()
+        for field in fields:
+            field.set_value(self.transactions_df.loc[int(row_id)][field.get_name()])
 
     def setup(self):
+        self.transactions_form_frame = tk.Frame(self.frame)
+        self.transactions_form_frame.pack(pady=10, side="top", fill="both", expand=True)
+        # Create empty form
+        self.transactions_form = EditTransactionForm(self.transactions_form_frame, None)
         # create a bar with filters and refresh button
         filter_frame = tk.Frame(self.frame)
         filter_frame.pack(pady=10)
@@ -158,8 +180,8 @@ class Transactions(ABPage):
         refresh_button = tk.Button(filter_frame, text="Refresh", command=self.refresh)
         refresh_button.pack(side="right")
         # dropdown to allow to filter by each column
-        df = get_transactions_df()
-        filter_options = list(df.columns)
+        self.transactions_df = get_transactions_df()
+        filter_options = list(self.transactions_df.columns)
         filter_var = tk.StringVar()
         filter_var.set(filter_options[0])
         filter_dropdown = tk.OptionMenu(filter_frame, filter_var, *filter_options)
