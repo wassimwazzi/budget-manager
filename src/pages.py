@@ -126,7 +126,7 @@ class Transactions(ABPage):
         ]
         tree = ttk.Treeview(
             self.transactions_table_frame,
-            columns=cols + ["Edit", "Delete"],
+            columns=cols,
             show="headings",
         )
 
@@ -134,25 +134,96 @@ class Transactions(ABPage):
         for col in cols:
             tree.heading(col, text=col.title())
             tree.column(col, width=100)
-        tree.heading("Edit", text="")
-        tree.column("Edit", width=100)
-        tree.heading("Delete", text="")
-        tree.column("Delete", width=100)
 
         # Insert data into the Treeview
         # add edit and delete buttons to each row
         for _, row in self.transactions_df.iterrows():
             # make sure row values are in same order as columns
             row_values = [row[col] for col in cols]
-            tree.insert("", "end", values=row_values + ["Edit", "Delete"])
-
-        # # Add buttons to each row
-        # for item in tree.get_children():
-        #     tree.insert(item, "end", values=["Edit", "Delete"])
-        #     tree.item(item, values=row_values + [None, None], tags=(item,))
+            tree.insert("", "end", values=row_values)
 
         tree.pack(side="left", fill="both", expand=True)
         tree.bind("<Button-1>", self.edit_transaction)
+
+    def show_filters(self):
+        # create a bar with filters and refresh button
+        filter_frame = tk.Frame(self.frame)
+        filter_frame.pack(pady=10)
+        # create a button to refresh the transactions
+        refresh_button = tk.Button(filter_frame, text="Refresh", command=self.refresh)
+        # put on right side
+        refresh_button.grid(row=1, column=0)
+        # dropdown to allow to sort by each column
+        sort_label = tk.Label(filter_frame, text="Sort by:")
+        sort_label.grid(row=0, column=1)
+        sort_options = list(self.transactions_df.columns)
+        sort_options.remove("id")
+        sort_var = tk.StringVar()
+        sort_var.set(sort_options[0])
+        sort_dropdown = tk.OptionMenu(filter_frame, sort_var, *sort_options)
+        sort_dropdown.grid(row=1, column=1)
+        # asc or desc checkbox
+        sort_asc_var = tk.BooleanVar()
+        sort_asc_var.set(True)
+        sort_asc_checkbox = tk.Checkbutton(
+            filter_frame, text="Ascending", variable=sort_asc_var
+        )
+        sort_asc_checkbox.grid(row=1, column=2)
+        # dropdown for search column
+        search_menu_label = tk.Label(filter_frame, text="Search column:")
+        search_menu_label.grid(row=0, column=3)
+        search_menu_var = tk.StringVar()
+        search_menu_var.set(sort_options[0])
+        search_menu = tk.OptionMenu(filter_frame, search_menu_var, *sort_options)
+        search_menu.grid(row=1, column=3)
+        # search for a string in a column
+        search_label = tk.Label(filter_frame, text="Search:")
+        search_label.grid(row=0, column=4)
+        search_var = tk.StringVar()
+        search_entry = tk.Entry(filter_frame, textvariable=search_var)
+        search_entry.grid(row=1, column=4)
+        # submit button
+        submit_button = tk.Button(
+            filter_frame,
+            text="Submit",
+            command=lambda: self.filter_transactions(
+                sort_var.get(),
+                sort_asc_var.get(),
+                search_menu_var.get(),
+                search_var.get(),
+            ),
+        )
+        submit_button.grid(row=1, column=5)
+
+    def filter_transactions(self, sort_col, sort_asc, search_col, search_str):
+        # get the transactions df
+        if self.transactions_df is None:
+            self.transactions_df = get_transactions_df()
+        # filter by search string
+        if search_str:
+            match search_col:
+                case "date":
+                    self.transactions_df = self.transactions_df[
+                        self.transactions_df[search_col].str.contains(search_str)
+                    ]
+                case "amount":
+                    self.transactions_df = self.transactions_df[
+                        self.transactions_df[search_col]
+                        .astype(str)
+                        .str.contains(search_str)
+                    ]
+                case _:
+                    self.transactions_df = self.transactions_df[
+                        self.transactions_df[search_col]
+                        .str.lower()
+                        .str.contains(search_str.lower())
+                    ]
+        # sort by column
+        self.transactions_df = self.transactions_df.sort_values(
+            by=sort_col, ascending=sort_asc
+        ).reset_index(drop=True) # reset index so that it matches the row number in the table when editing
+        # refresh the transactions table
+        self.show_transactions()
 
     def edit_transaction(self, event):
         selected_row = event.widget.selection()
@@ -175,25 +246,12 @@ class Transactions(ABPage):
             field.set_value(self.transactions_df.loc[int(row_id)][field.get_name()])
 
     def setup(self):
+        self.transactions_df = get_transactions_df()
         self.transactions_form_frame = tk.Frame(self.frame)
         self.transactions_form_frame.pack(pady=10, side="top", fill="both", expand=True)
         # Create empty form
         self.transactions_form = EditTransactionForm(self.transactions_form_frame, None)
-        # create a bar with filters and refresh button
-        filter_frame = tk.Frame(self.frame)
-        filter_frame.pack(pady=10)
-        # create a button to refresh the transactions
-        refresh_button = tk.Button(filter_frame, text="Refresh", command=self.refresh)
-        refresh_button.pack(side="right")
-        # dropdown to allow to filter by each column
-        self.transactions_df = get_transactions_df()
-        filter_options = list(self.transactions_df.columns)
-        filter_var = tk.StringVar()
-        filter_var.set(filter_options[0])
-        filter_dropdown = tk.OptionMenu(filter_frame, filter_var, *filter_options)
-        filter_dropdown.pack(side="left")
-        # entry to allow to filter by a value
-
+        self.show_filters()
         self.show_transactions()
 
     def notify_update(self):
