@@ -473,12 +473,13 @@ class EditTransactionForm(ABForm):
                 text="Invalid transaction id", fg=ABForm.ERROR_COLOR
             )
             return
+        print(f"Deleting transaction {self.transaction_id}")
         self.db.delete(
-            """
+            f"""
                 DELETE FROM transactions
-                WHERE id = ?
+                WHERE id = {self.transaction_id}
             """,
-            [self.transaction_id],
+            [],
         )
         self.clear_form()
         self.form_message_label.config(
