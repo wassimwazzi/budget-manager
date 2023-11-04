@@ -56,11 +56,12 @@ class ABForm(ABC):
 
     def create_form(self):
         self.set_form_title()
-        self.set_form_inputs_layout()
+        for i, form_field in enumerate(self.form_fields, start=1):
+            self.set_form_input_layout(i, form_field)
         self.set_action_buttons_layout()
 
         self.form_message_label.grid(
-            row=len(self.form_fields) * 2 + 1, columnspan=3, padx=20
+            row=self.form.grid_size()[1], columnspan=3, padx=20
         )
 
     def set_form_title(self):
@@ -87,26 +88,25 @@ class ABForm(ABC):
                 columnspan=columnspan,
             )
 
-    def set_form_inputs_layout(self):
+    def set_form_input_layout(self, i, form_field):
         """
+        Called for each form field.
         Default layout is vertical.
         Override this method to change the layout of the form
-        """
-        for i, form_field in enumerate(self.form_fields, start=1):
-            field_name = form_field.get_name()
-            tk_label = tk.Label(
-                self.form, text=field_name, font=("Arial", 12), fg="white"
-            )
-            tk_label.grid(row=i * 2, column=0, sticky="w", padx=10, pady=10)
-            tk_field = form_field.get_tk_field()
-            tk_field.config(
-                highlightbackground=ABForm.VALID_COLOR,
-                highlightcolor=ABForm.VALID_COLOR,
-            )
-            tk_field.grid(row=i * 2, column=1, padx=10, pady=10, sticky="w")
-            self.error_labels[i - 1].grid(row=i * 2 + 1, column=1, padx=10)
 
-        self.form_message_label.grid(row=4, columnspan=len(self.form_fields), padx=20)
+        :param i: the row number of the form field. Starts at 1
+        :param form_field: the form field to layout
+        """
+        field_name = form_field.get_name()
+        tk_label = tk.Label(self.form, text=field_name, font=("Arial", 12), fg="white")
+        tk_label.grid(row=i * 2, column=0, sticky="w", padx=10, pady=10)
+        tk_field = form_field.get_tk_field()
+        tk_field.config(
+            highlightbackground=ABForm.VALID_COLOR,
+            highlightcolor=ABForm.VALID_COLOR,
+        )
+        tk_field.grid(row=i * 2, column=1, padx=10, pady=10, sticky="w")
+        self.error_labels[i - 1].grid(row=i * 2 + 1, column=1, padx=10)
 
     def submit(self):
         is_success = True
