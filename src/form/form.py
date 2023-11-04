@@ -172,7 +172,6 @@ class TransactionsCsvForm(ABForm):
 
     def infer_category(self, row, categories):
         # TODO: make this take all rows, and batch process
-        print(f"Category: {row['Category']}, description: {row['Description']}")
         if row["Category"] in categories:
             print(
                 f"Using existing category for {row['Description']}: {row['Category']}"
@@ -198,6 +197,7 @@ class TransactionsCsvForm(ABForm):
             print(f"Using default category for {row['Description']}: Other")
             return ("Other", False)
         result = self.text_classifier.predict(row["Description"], categories)
+        print(f"Inferred category for {row['Description']}: {result}")
         return (result, True)
 
     def infer_categories(self, df, categories):
@@ -247,8 +247,8 @@ class TransactionsCsvForm(ABForm):
                 row["Category"] = result
         return df
 
-    def create_data_from_csv(self, data):
-        with open(data, "r", encoding="utf-8") as f:
+    def create_data_from_csv(self, filename):
+        with open(filename, "r", encoding="utf-8") as f:
             df = pd.read_csv(f)
             # validate column names
             expected_columns = ["Date", "Description", "Amount", "Category", "Code"]
@@ -318,12 +318,13 @@ class TransactionsCsvForm(ABForm):
                     """,
                     data,
                 )
+                print(data)
                 self.db.insert(
                     """
                         INSERT INTO FILES (filename)
                         VALUES (?)
                     """,
-                    [data],
+                    [filename],
                 )
                 self.clear_form()
                 print("Successfully added transactions")
