@@ -10,6 +10,7 @@ TABLES = [
     "codes",
     "currencies",
     "budgets",
+    "files",
 ]
 
 if __name__ == "__main__":

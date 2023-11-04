@@ -116,7 +116,3 @@ class SimpleClassifier(TextClassifier):
         result = self.pipe(texts, labels)
         predicted_labels = [r["labels"][0] for r in result]
         return predicted_labels
-    
-
-c = SimpleClassifier()
-print(c.predict_batch(["I want to buy a car", "I want to sell a car"], ["buy", "sell"]))

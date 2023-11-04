@@ -197,13 +197,6 @@ class TransactionsCsvForm(ABForm):
         if not row["Description"]:
             print(f"Using default category for {row['Description']}: Other")
             return ("Other", False)
-        # use NLP to infer category
-        # nlp = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
-        # candidate_labels = categories
-        # results = nlp(row["Description"], candidate_labels)
-        # print(results)
-        # result = results["labels"][0]
-        # print(f"Inferred category for {row['Description']}: {result}")
         result = self.text_classifier.predict(row["Description"], categories)
         return (result, True)
 
@@ -214,8 +207,6 @@ class TransactionsCsvForm(ABForm):
         If the code is the same as a previous transaction, use that category
         Otherwise, use NLP to infer category
         """
-        # print thread id
-        print(f"Thread id: {threading.get_ident()}")
         descriptions_to_infer = {}
         df["Inferred_Category"] = 0  # 0 = not inferred, 1 = inferred
         for i, row in df.iterrows():
@@ -310,14 +301,14 @@ class TransactionsCsvForm(ABForm):
             data = []
             cols = expected_columns + auto_added_columns
             # insert into db
-            # for _, row in df.iterrows():
-            #     category, was_inferred = self.infer_category(row, categories)
-            #     row["Category"] = category
-            #     row["Inferred_Category"] = 1 if was_inferred else 0
-            #     row_data = tuple(row[col] for col in cols)
-            #     data.append(row_data)
+            for _, row in df.iterrows():
+                category, was_inferred = self.infer_category(row, categories)
+                row["Category"] = category
+                row["Inferred_Category"] = 1 if was_inferred else 0
+                row_data = tuple(row[col] for col in cols)
+                data.append(row_data)
 
-            df = self.infer_categories(df, categories)
+            # df = self.infer_categories(df, categories)
             try:
                 # TODO: make this a transaction
                 self.db.insert_many(
@@ -329,10 +320,10 @@ class TransactionsCsvForm(ABForm):
                 )
                 self.db.insert(
                     """
-                        INSERT INTO FILES (name, date)
-                        VALUES (?, ?)
+                        INSERT INTO FILES (filename)
+                        VALUES (?)
                     """,
-                    [data, pd.Timestamp.today()],
+                    [data],
                 )
                 self.clear_form()
                 print("Successfully added transactions")
@@ -343,7 +334,6 @@ class TransactionsCsvForm(ABForm):
 
     def on_success(self) -> (bool, str):
         data = self.form_fields[0].get_value()
-        print("Thread id: ", threading.get_ident())
         # parse csv in a separate thread
         thread = threading.Thread(
             target=self.create_data_from_csv, args=(data,), daemon=True
