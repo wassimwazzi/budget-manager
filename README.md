@@ -16,3 +16,9 @@ Important for mac to make sure that you are using compatible version of tkinter 
 - sqlite
 - pylint
 - github copilot
+
+## Bundle code to one file
+I use the auto-py-to-exe library, which is basically just a GUI on top of the pyinstaller command.
+Just run auto-py-to-exe in a console, and select main.py file, and follow instructions.
+OR, run this command:
+`pyinstaller --onefile --windowed --noconfirm main.py`
