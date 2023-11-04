@@ -104,6 +104,7 @@ class Transactions(ABPage):
     def __init__(self, parent):
         super().__init__(parent)
         self.transactions_form_frame = None
+        self.transactions_table_frame = None
         self.transactions_form = None
         self.transactions_df = None
 
@@ -111,8 +112,10 @@ class Transactions(ABPage):
         if self.transactions_df is None:
             self.transactions_df = get_transactions_df()
         # Create a Treeview widget to display the DataFrame
-        transactions_frame = tk.Frame(self.frame)
-        transactions_frame.pack(fill="both", expand=True)
+        if self.transactions_table_frame:
+            self.transactions_table_frame.destroy()
+        self.transactions_table_frame = tk.Frame(self.frame)
+        self.transactions_table_frame.pack(fill="both", expand=True)
         cols = [
             "date",
             "description",
@@ -122,7 +125,9 @@ class Transactions(ABPage):
             "inferred category",
         ]
         tree = ttk.Treeview(
-            transactions_frame, columns=cols + ["Edit", "Delete"], show="headings"
+            self.transactions_table_frame,
+            columns=cols + ["Edit", "Delete"],
+            show="headings",
         )
 
         # Add column headings
@@ -164,6 +169,7 @@ class Transactions(ABPage):
         self.transactions_form = EditTransactionForm(
             self.transactions_form_frame, transaction_id
         )
+        self.transactions_form.register_listener(self)
         fields = self.transactions_form.get_form_fields()
         for field in fields:
             field.set_value(self.transactions_df.loc[int(row_id)][field.get_name()])
@@ -188,4 +194,12 @@ class Transactions(ABPage):
         filter_dropdown.pack(side="left")
         # entry to allow to filter by a value
 
+        self.show_transactions()
+
+    def notify_update(self):
+        self.refresh()
+
+    def refresh(self):
+        # only refresh the transactions table
+        self.transactions_df = None
         self.show_transactions()

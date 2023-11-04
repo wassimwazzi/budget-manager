@@ -423,6 +423,7 @@ class EditTransactionForm(ABForm):
             "Edit Transaction",
             action_buttons=self.action_buttons,
         )
+        self.listeners = []
         super().create_form()
 
     def on_success(self) -> (bool, str):
@@ -433,7 +434,7 @@ class EditTransactionForm(ABForm):
         for field in self.form_fields:
             data[field.get_name()] = field.get_value()
         try:
-            statement = f""" 
+            statement = f"""
                     UPDATE transactions
                     SET date = '{data["date"]}', description = '{data["description"]}',
                         amount = {data["amount"]}, category = '{data["category"]}', code = '{data["code"]}', inferred_category = 0
@@ -443,6 +444,7 @@ class EditTransactionForm(ABForm):
             self.db.update(statement, [])
         except Error as e:
             return (False, str(e))
+        self.notify_update()
         return (True, "Successfully updated transaction")
 
     def set_form_input_layout(self, i, form_field):
@@ -485,6 +487,14 @@ class EditTransactionForm(ABForm):
         self.form_message_label.config(
             text="Successfully deleted row", fg=ABForm.SUCCESS_COLOR
         )
+        self.notify_update()
+
+    def register_listener(self, listener):
+        self.listeners.append(listener)
+
+    def notify_update(self):
+        for listener in self.listeners:
+            listener.notify_update()
 
 
 class AddTransactionForm(ABForm):
