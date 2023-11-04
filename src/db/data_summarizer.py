@@ -21,14 +21,25 @@ def get_end_of_month(month: str):
 
 def get_transactions_df():
     transactions = db.select(
-        "SELECT date, description, amount, category, code FROM transactions", []
+        "SELECT date, description, amount, category, code, inferred_category FROM transactions",
+        [],
     )
     df = pd.DataFrame(
         transactions,
-        columns=["date", "description", "amount", "category", "code"],
+        columns=[
+            "date",
+            "description",
+            "amount",
+            "category",
+            "code",
+            "inferred category",
+        ],
     )
     df["date"] = pd.to_datetime(df["date"])
     df["amount"] = df["amount"].apply(lambda x: round(float(x), 2))
+    df["inferred category"] = df["inferred category"].apply(
+        lambda x: "No" if x == 0 else "Yes"
+    )
     return df
 
 

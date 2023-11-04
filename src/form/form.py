@@ -318,7 +318,6 @@ class TransactionsCsvForm(ABForm):
                     """,
                     data,
                 )
-                print(data)
                 self.db.insert(
                     """
                         INSERT INTO FILES (filename)
