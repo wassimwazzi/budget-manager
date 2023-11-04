@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from abc import ABC, abstractmethod
 from src.form.form import (
     TransactionForm,
     TransactionsCsvForm,
@@ -14,19 +15,39 @@ from src.db.data_summarizer import (
 )
 
 
-class DataEntry(tk.Frame):
+class ABPage(tk.Frame, ABC):
     def __init__(self, parent):
         super().__init__(parent)
+        self.parent = parent
+        self.was_setup = False
+
+    def clicked(self):
+        if not self.was_setup:
+            self.setup()
+            self.was_setup = True
+        self.on_click()
+
+    @abstractmethod
+    def setup(self):
+        pass
+
+    def on_click(self):
+        pass
+
+
+class DataEntry(ABPage):
+    def setup(self):
         TransactionForm(self)
         TransactionsCsvForm(self)
 
 
-class Home(tk.Frame):
+
+class Home(ABPage):
     def __init__(self, parent):
         super().__init__(parent)
         self.parent = parent
         self.budget_frames = []
-        self.setup()
+        # self.setup()
 
     def notify(self, month):
         self.budget_summary(month)
@@ -68,13 +89,13 @@ class Home(tk.Frame):
         form.register_listener(self)
 
 
-class Transactions(tk.Frame):
+class Transactions(ABPage):
     def __init__(self, parent):
         super().__init__(parent)
         self.parent = parent
         self.transactions_frame = None
         self.tree = None
-        self.setup()
+        # self.setup()
 
     def show_transactions(self):
         df = get_transactions_df()

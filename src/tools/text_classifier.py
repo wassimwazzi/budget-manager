@@ -105,14 +105,19 @@ class SimpleClassifier(TextClassifier):
     """
 
     def __init__(self, model="facebook/bart-large-mnli") -> None:
-        self.pipe = pipeline(task="zero-shot-classification", model=model)
+        self.model = model
+        self.pipe = None # only initialize the pipeline when needed
 
     def predict(self, text, labels):
+        if not self.pipe:
+            self.pipe = pipeline("zero-shot-classification", model=self.model)
         result = self.pipe(text, labels)
         predicted_label = result["labels"][0]
         return predicted_label
 
     def predict_batch(self, texts, labels):
+        if not self.pipe:
+            self.pipe = pipeline("zero-shot-classification", model=self.model)
         result = self.pipe(texts, labels)
         predicted_labels = [r["labels"][0] for r in result]
         return predicted_labels

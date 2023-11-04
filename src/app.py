@@ -33,11 +33,11 @@ class BudgetApp(tk.Tk):
 
     def show_frame(self, frame_class):
         frame = self.frames[frame_class]
+        frame.clicked()
         frame.tkraise()
 
     def get_display_size(self):
         # get the height and width of the display
-
         monitor = get_monitors()[0]
         return monitor.width, monitor.height
 
