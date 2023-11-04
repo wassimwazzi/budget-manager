@@ -190,6 +190,28 @@ class TransactionForm(ABForm):
             return (False, str(e))
         return (True, "Successfully added transaction")
 
+    def set_form_input_layout(self, i, form_field):
+        # i is the row number of the form field. Starts at 1
+        # Show three inputs per row, or 2 if not enough.
+        # Entry under label, error label under entry
+        field_name = form_field.get_name()
+        row_position = (i-1) // 3 # 0 indexed
+        tk_label = tk.Label(self.form, text=field_name, font=("Arial", 12), fg="white")
+        tk_label.grid(
+            row=row_position * 3 + 1, column=(i-1) % 3, sticky="w", padx=5, pady=10
+        )
+        tk_field = form_field.get_tk_field()
+        tk_field.config(
+            highlightbackground=ABForm.VALID_COLOR,
+            highlightcolor=ABForm.VALID_COLOR,
+        )
+        tk_field.grid(
+            row=row_position*3 + 2, column=(i-1) % 3, padx=10, pady=10, sticky="w"
+        )
+        self.error_labels[i-1].grid(
+            row=row_position * 3 + 3, column=(i-1) % 3, padx=10
+        )
+
 
 class TransactionsCsvForm(ABForm):
     def __init__(self, master: tk.Tk):

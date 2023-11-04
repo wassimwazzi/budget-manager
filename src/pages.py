@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from abc import ABC, abstractmethod
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from src.form.form import (
     TransactionForm,
     TransactionsCsvForm,
