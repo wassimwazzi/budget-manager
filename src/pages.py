@@ -7,6 +7,7 @@ from src.form.form import (
     TransactionsCsvForm,
     GenerateMonthlySummaryForm,
     EditTransactionForm,
+    AddBudgetForm,
 )
 from src.db.data_summarizer import (
     get_transactions_df,
@@ -54,6 +55,7 @@ class DataEntry(ABPage):
     def setup(self):
         AddTransactionForm(self)
         TransactionsCsvForm(self)
+        AddBudgetForm(self)
 
 
 class Home(ABPage):

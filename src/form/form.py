@@ -87,24 +87,7 @@ class ABForm(ABC):
             )
 
     def set_form_input_layout(self, i, form_field):
-        """
-        Called for each form field.
-        Default layout is vertical.
-        Override this method to change the layout of the form
-
-        :param i: the row number of the form field. Starts at 1
-        :param form_field: the form field to layout
-        """
-        field_name = form_field.get_display_name()
-        tk_label = tk.Label(self.form, text=field_name, font=("Arial", 12), fg="white")
-        tk_label.grid(row=i * 2, column=0, sticky="w", padx=10, pady=10)
-        tk_field = form_field.get_tk_field()
-        tk_field.config(
-            highlightbackground=ABForm.VALID_COLOR,
-            highlightcolor=ABForm.VALID_COLOR,
-        )
-        tk_field.grid(row=i * 2, column=1, padx=10, pady=10, sticky="w")
-        self.error_labels[i - 1].grid(row=i * 2 + 1, column=1, padx=10)
+        self.set_form_input_vertical(i, form_field)
 
     def submit(self):
         is_success = True
@@ -152,6 +135,56 @@ class ABForm(ABC):
     @abstractmethod
     def on_success(self) -> (bool, str):
         pass
+
+    def set_form_input_vertical(self, i, form_field):
+        """
+        Called for each form field.
+        Default layout is vertical.
+        Override this method to change the layout of the form
+
+        :param i: the row number of the form field. Starts at 1
+        :param form_field: the form field to layout
+        """
+        field_name = form_field.get_display_name()
+        tk_label = tk.Label(self.form, text=field_name, font=("Arial", 12), fg="white")
+        tk_label.grid(row=i * 2, column=0, sticky="w", padx=10, pady=10)
+        tk_field = form_field.get_tk_field()
+        tk_field.config(
+            highlightbackground=ABForm.VALID_COLOR,
+            highlightcolor=ABForm.VALID_COLOR,
+        )
+        tk_field.grid(row=i * 2, column=1, padx=10, pady=10, sticky="w")
+        self.error_labels[i - 1].grid(row=i * 2 + 1, column=1, padx=10)
+
+    def set_form_input_horizontal(self, i, form_field, elements_per_row):
+        # i is the row number of the form field. Starts at 1
+        field_name = form_field.get_display_name()
+        row_position = (i - 1) // elements_per_row  # 0 indexed
+        tk_label = tk.Label(self.form, text=field_name, font=("Arial", 12), fg="white")
+        tk_label.grid(
+            row=row_position * elements_per_row + 1,
+            column=(i - 1) % elements_per_row,
+            sticky="w",
+            padx=5,
+            pady=10,
+        )
+        tk_field = form_field.get_tk_field()
+        tk_field.config(
+            highlightbackground=ABForm.VALID_COLOR,
+            highlightcolor=ABForm.VALID_COLOR,
+        )
+        tk_field.grid(
+            row=row_position * elements_per_row + 2,
+            column=(i - 1) % elements_per_row,
+            padx=10,
+            pady=10,
+            sticky="w",
+        )
+        self.error_labels[i - 1].grid(
+            row=row_position * elements_per_row + 3,
+            column=(i - 1) % elements_per_row,
+            padx=10,
+        )
 
 
 class TransactionsCsvForm(ABForm):
@@ -448,26 +481,7 @@ class EditTransactionForm(ABForm):
         return (True, "Successfully updated transaction")
 
     def set_form_input_layout(self, i, form_field):
-        # i is the row number of the form field. Starts at 1
-        # Show three inputs per row, or 2 if not enough.
-        # Entry under label, error label under entry
-        field_name = form_field.get_display_name()
-        row_position = (i - 1) // 3  # 0 indexed
-        tk_label = tk.Label(self.form, text=field_name, font=("Arial", 12), fg="white")
-        tk_label.grid(
-            row=row_position * 3 + 1, column=(i - 1) % 3, sticky="w", padx=5, pady=10
-        )
-        tk_field = form_field.get_tk_field()
-        tk_field.config(
-            highlightbackground=ABForm.VALID_COLOR,
-            highlightcolor=ABForm.VALID_COLOR,
-        )
-        tk_field.grid(
-            row=row_position * 3 + 2, column=(i - 1) % 3, padx=10, pady=10, sticky="w"
-        )
-        self.error_labels[i - 1].grid(
-            row=row_position * 3 + 3, column=(i - 1) % 3, padx=10
-        )
+        self.set_form_input_horizontal(i, form_field, 3)
 
     def delete(self):
         if not self.transaction_id:
@@ -563,3 +577,46 @@ class AddTransactionForm(ABForm):
         self.error_labels[i - 1].grid(
             row=row_position * 3 + 3, column=(i - 1) % 3, padx=10
         )
+
+
+class AddBudgetForm(ABForm):
+    def __init__(self, master: tk.Tk):
+        self.master = master
+        self.form = tk.Frame(self.master)
+        self.form.pack(pady=20)
+        self.db = DBManager()
+        self.categories = [
+            c[0]
+            for c in self.db.select(
+                "SELECT category FROM categories  ORDER BY category ASC", []
+            )
+        ]
+        self.form_fields = [
+            DropdownField(
+                "category", True, self.categories, self.form, display_name="Category"
+            ),
+            NumberField("amount", True, self.form, display_name="Budget"),
+            DateField("start_date", True, self.form, display_name="Month (YYYY-MM)", date_format="YYYY-MM"),
+        ]
+        super().__init__(self.form, self.form_fields, "Add Budget")
+        super().create_form()
+
+    def on_success(self) -> (bool, str):
+        # Data is valid, proceed with insertion
+        data = {}
+        for field in self.form_fields:
+            data[field.get_name()] = field.get_value()
+        try:
+            self.db.insert(
+                """
+                    INSERT INTO budgets (category, amount, start_date)
+                    VALUES (?, ?, ?)
+                """,
+                [data["category"], data["amount"], data["start_date"]],
+            )
+        except Error as e:
+            return (False, str(e))
+        return (True, "Successfully added budget")
+
+    def set_form_input_layout(self, i, form_field):
+        self.set_form_input_vertical(i, form_field)

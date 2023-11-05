@@ -70,7 +70,7 @@ def get_budget_summary_df(month):
 
             TRANSACTIONSBUDGET AS (
                 SELECT b.CATEGORY AS Category, b.AMOUNT AS Budget,
-                    COALESCE(SUM(t.amount),0) AS Actual, b.AMOUNT - COALESCE(SUM(t.amount),0) AS Difference
+                    COALESCE(SUM(t.amount),0) AS Actual, b.AMOUNT - COALESCE(SUM(t.amount),0) AS Remaining
                 FROM BUDGETSINCEDATE b
                 LEFT OUTER JOIN TRANSACTIONS t ON (
                     t.category = b.category AND
@@ -78,7 +78,7 @@ def get_budget_summary_df(month):
                     t.date <= '{end_date}'
                 )
                 GROUP BY b.CATEGORY
-                ORDER BY Difference ASC
+                ORDER BY Remaining ASC
             )
 
             SELECT * FROM TRANSACTIONSBUDGET
@@ -87,7 +87,7 @@ def get_budget_summary_df(month):
         """,
         [],
     )
-    df = pd.DataFrame(df, columns=["Category", "Budget", "Actual", "Difference"])
+    df = pd.DataFrame(df, columns=["Category", "Budget", "Actual", "Remaining"])
     return df
 
 
@@ -164,7 +164,7 @@ def get_budget_minus_spend_bar_chart_plt(month):
     # Create a bar chart of the budget vs. actual for each category
     width = 0.4
     x = range(len(df["Category"]))
-    ax.bar(x, df["Difference"], width=width, label="Difference")
+    ax.bar(x, df["Remaining"], width=width, label="Remaining")
 
     # Set x-axis labels, rotate them, and adjust spacing
     ax.set_xticks([i + width / 2 for i in x])  # Adjust spacing
@@ -175,7 +175,7 @@ def get_budget_minus_spend_bar_chart_plt(month):
     # Set labels and legend
     ax.set_xlabel("Category")
     ax.set_ylabel("Amount")
-    ax.set_title("Difference between budget and actual")
+    ax.set_title("Remaining amount from budget")
     ax.legend()
 
     plt.tight_layout()  # Automatically adjust subplot parameters to prevent clipping
