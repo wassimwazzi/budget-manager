@@ -61,13 +61,13 @@ class BudgetApp(tk.Tk):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # self.minsize(*self.get_display_size())
+        # Add navbar
+        nav_frame = NavFrame(self, self, PAGES, Home)
+        nav_frame.pack(side="top", fill="x", expand=True)
+
         container = VerticalScrolledFrame(self)
         container.pack(side="top", fill="both", expand=True)
         self.container = container
-
-        # Add navbar
-        nav_frame = NavFrame(container.interior, self, PAGES, Home)
-        nav_frame.pack(side="top", fill="x", expand=True)
 
         self.frames = {}
 
