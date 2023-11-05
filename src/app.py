@@ -58,33 +58,34 @@ class VerticalScrolledFrame(ttk.Frame):
 
 
 class BudgetApp(tk.Tk):
-    # use VerticalScrolledFrame instead of tk.Frame
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # self.minsize(*self.get_display_size())
         container = VerticalScrolledFrame(self)
         container.pack(side="top", fill="both", expand=True)
-        container.grid_rowconfigure(0, weight=1)
-        container.grid_rowconfigure(1, weight=9)
-        container.grid_columnconfigure(0, weight=1)
+        self.container = container
 
         # Add navbar
         nav_frame = NavFrame(container.interior, self, PAGES, Home)
-        nav_frame.grid(row=0, column=0, sticky="nsew")
+        nav_frame.pack(side="top", fill="x", expand=True)
 
         self.frames = {}
 
         for Page in PAGES:
             frame = Page(container.interior)
             self.frames[Page] = frame
-            frame.grid(row=1, column=0, sticky="nsew")
+            frame.pack(fill="both", expand=True)
 
+        self.current_frame = None
         self.show_frame(PAGES[0])
 
     def show_frame(self, frame_class):
+        if self.current_frame:
+            self.current_frame.pack_forget()
         frame = self.frames[frame_class]
         frame.clicked()
-        frame.tkraise()
+        frame.pack(fill="both", expand=True)
+        self.current_frame = frame
 
     def get_display_size(self):
         # get the height and width of the display
