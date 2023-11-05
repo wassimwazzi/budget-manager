@@ -27,7 +27,7 @@ if __name__ == "__main__":
         print("Invalid choice")
         exit(1)
     # drop all tables
-    db = DBManager
+    db = DBManager()
     for table in TABLES:
         db.delete(f"DROP TABLE IF EXISTS {table}", ())
 
