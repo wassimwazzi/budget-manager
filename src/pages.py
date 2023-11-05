@@ -12,7 +12,9 @@ from src.db.data_summarizer import (
     get_transactions_df,
     get_budget_summary_df,
     get_monthly_income_df,
-    get_budget_summary_plt,
+    get_budget_vs_spend_plt,
+    get_spend_per_cateogire_pie_chart_plt,
+    get_budget_minus_spend_bar_chart_plt
 )
 
 
@@ -90,10 +92,28 @@ class Home(ABPage):
         plot_frame = tk.Frame(upper_frame)
         self.budget_frames.append(plot_frame)
         plot_frame.pack(pady=10)
-        fig = get_budget_summary_plt(month)
+        fig = get_budget_vs_spend_plt(month)
         canvas = FigureCanvasTkAgg(fig, master=plot_frame)
         canvas.draw()
         canvas.get_tk_widget().pack(side="right", fill="both", expand=True)
+
+        lower_frame = tk.Frame(self.frame)
+        self.budget_frames.append(lower_frame)
+        lower_frame.pack(fill="both", expand=True)
+        # create pie chart
+        fig = get_spend_per_cateogire_pie_chart_plt(month)
+        canvas = FigureCanvasTkAgg(fig, master=lower_frame)
+        canvas.get_tk_widget().configure(width=500, height=500)
+        canvas.draw()
+        canvas.get_tk_widget().pack(side="left", fill="both", expand=True)
+
+        # create budget - spend bar chart
+        fig = get_budget_minus_spend_bar_chart_plt(month)
+        canvas = FigureCanvasTkAgg(fig, master=lower_frame)
+        canvas.get_tk_widget().configure(width=500, height=500)
+        canvas.draw()
+        canvas.get_tk_widget().pack(side="right", fill="both", expand=True)
+
 
     def setup(self):
         form = GenerateMonthlySummaryForm(self.frame)
@@ -221,7 +241,9 @@ class Transactions(ABPage):
         # sort by column
         self.transactions_df = self.transactions_df.sort_values(
             by=sort_col, ascending=sort_asc
-        ).reset_index(drop=True) # reset index so that it matches the row number in the table when editing
+        ).reset_index(
+            drop=True
+        )  # reset index so that it matches the row number in the table when editing
         # refresh the transactions table
         self.show_transactions()
 

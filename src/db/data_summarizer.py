@@ -106,7 +106,7 @@ def get_monthly_income_df():
     return df
 
 
-def get_budget_summary_plt(month):
+def get_budget_vs_spend_plt(month):
     df = get_budget_summary_df(month)
 
     fig, ax = plt.subplots()  # Adjust the figure size as needed
@@ -127,6 +127,55 @@ def get_budget_summary_plt(month):
     ax.set_xlabel("Category")
     ax.set_ylabel("Amount")
     ax.set_title("Budget vs. Actual")
+    ax.legend()
+
+    plt.tight_layout()  # Automatically adjust subplot parameters to prevent clipping
+
+    return fig
+
+
+def get_spend_per_cateogire_pie_chart_plt(month):
+    # Pie chart of spend per category
+    start_date = datetime.strptime(month, "%Y-%m").strftime("%Y-%m-01")
+    end_date = get_end_of_month(month)
+    transactions_for_month = db.select(
+        f"""
+            SELECT c.category, SUM(t.amount) AS total
+            FROM Transactions t JOIN Categories c ON t.category = c.category
+            WHERE t.date >= '{start_date}' AND t.date <= '{end_date}'
+            GROUP BY c.category
+        """,
+        [],
+    )
+    df = pd.DataFrame(transactions_for_month, columns=["category", "total"])
+    fig, ax = plt.subplots(figsize=(8, 8))  # You can adjust the size as needed
+
+    ax.pie(df["total"], labels=df["category"], autopct="%1.1f%%")
+    ax.axis("equal")
+    ax.set_title("Spend per category")
+    # set size of figure
+    return fig
+
+
+def get_budget_minus_spend_bar_chart_plt(month):
+    df = get_budget_summary_df(month)
+    fig, ax = plt.subplots()  # Adjust the figure size as needed
+
+    # Create a bar chart of the budget vs. actual for each category
+    width = 0.4
+    x = range(len(df["Category"]))
+    ax.bar(x, df["Difference"], width=width, label="Difference")
+
+    # Set x-axis labels, rotate them, and adjust spacing
+    ax.set_xticks([i + width / 2 for i in x])  # Adjust spacing
+    ax.set_xticklabels(
+        df["Category"], rotation=45, ha="right"
+    )  # Rotate labels for readability
+
+    # Set labels and legend
+    ax.set_xlabel("Category")
+    ax.set_ylabel("Amount")
+    ax.set_title("Difference between budget and actual")
     ax.legend()
 
     plt.tight_layout()  # Automatically adjust subplot parameters to prevent clipping
