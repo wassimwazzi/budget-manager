@@ -1,4 +1,5 @@
 import sqlite3
+import os
 from sqlite3 import Error
 
 
@@ -14,11 +15,16 @@ def throws_db_error(func):
 
 # class to handle database
 class DBManager:
-    DATABASE = "db.sqlite3"
     SCHEMA = "src/db/schema.sql"
 
     def __init__(self):
-        self.db = DBManager.DATABASE
+        self.db = os.getenv("DB_FILE")
+        if not self.db:
+            raise Exception("Database file not specified")
+
+        if not os.path.exists(self.db):
+            print("Database does not exist. Creating...")
+            self.setup()
 
     def _connect(self):
         try:
