@@ -14,7 +14,7 @@ from src.db.data_summarizer import (
     get_monthly_income_df,
     get_budget_vs_spend_plt,
     get_spend_per_cateogire_pie_chart_plt,
-    get_budget_minus_spend_bar_chart_plt
+    get_budget_minus_spend_bar_chart_plt,
 )
 
 
@@ -113,7 +113,6 @@ class Home(ABPage):
         canvas.get_tk_widget().configure(width=500, height=500)
         canvas.draw()
         canvas.get_tk_widget().pack(side="right", fill="both", expand=True)
-
 
     def setup(self):
         form = GenerateMonthlySummaryForm(self.frame)
