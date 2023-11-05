@@ -19,7 +19,7 @@ def get_end_of_month(month: str):
     return end_of_month.strftime("%Y-%m-%d")
 
 
-def get_transactions_df():
+def get_transactions_df(cols=None):
     transactions = db.select(
         "SELECT id, date, description, amount, category, code, inferred_category FROM transactions",
         [],
@@ -41,10 +41,12 @@ def get_transactions_df():
     df["inferred category"] = df["inferred category"].apply(
         lambda x: "No" if x == 0 else "Yes"
     )
+    if cols:
+        df = df[cols]
     return df
 
 
-def get_budget_summary_df(month):
+def get_budget_summary_df(month, cols=None):
     """
     month: str in the format YYYY-MM
     """
@@ -87,11 +89,11 @@ def get_budget_summary_df(month):
         """,
         [],
     )
-    df = pd.DataFrame(df, columns=["Category", "Budget", "Actual", "Remaining"])
+    df = pd.DataFrame(df, columns=cols or ["Category", "Budget", "Actual", "Remaining"])
     return df
 
 
-def get_monthly_income_df():
+def get_monthly_income_df(cols=None):
     df = db.select(
         """
             SELECT strftime('%Y-%m', date) AS month, SUM(amount) AS total, c.category
@@ -102,7 +104,19 @@ def get_monthly_income_df():
         """,
         [],
     )
-    df = pd.DataFrame(df, columns=["month", "total", "category"])
+    df = pd.DataFrame(df, columns=cols or ["month", "total", "category"])
+    return df
+
+
+def get_budgets_df(cols=None):
+    df = db.select(
+        """
+            SELECT b.category, b.amount, b.start_date
+            FROM Budgets b JOIN Categories c ON b.category = c.category
+        """,
+        [],
+    )
+    df = pd.DataFrame(df, columns=cols or ["category", "amount", "start_date"])
     return df
 
 
