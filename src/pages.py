@@ -7,6 +7,7 @@ from src.form.form import (
     TransactionsCsvForm,
     GenerateMonthlySummaryForm,
     EditTransactionForm,
+    EditBudgetForm,
     AddBudgetForm,
 )
 from src.db.data_summarizer import (
@@ -139,24 +140,6 @@ class EditableTable(tk.Frame):
         if self.data is None:
             self.data = self.get_data_func()
         # filter by search string
-        # if search_str:
-        #     match search_col:
-        #         case "date":
-        #             self.data = self.transactions_df[
-        #                 self.transactions_df[search_col].str.contains(search_str)
-        #             ]
-        #         case "amount":
-        #             self.data = self.transactions_df[
-        #                 self.transactions_df[search_col]
-        #                 .astype(str)
-        #                 .str.contains(search_str)
-        #             ]
-        #         case _:
-        #             self.data = self.transactions_df[
-        #                 self.transactions_df[search_col]
-        #                 .str.lower()
-        #                 .str.contains(search_str.lower())
-        #             ]
         self.data = self.data[
             self.data[search_col]
             .astype(str)
@@ -285,10 +268,22 @@ class Transactions(ABPage):
         super().__init__(parent)
 
     def setup(self):
-        self.transactions_df = get_transactions_df()
-        self.table_frame = EditableTable(
+        table_frame = EditableTable(
             self.frame,
             get_transactions_df,
             EditTransactionForm,
         )
-        self.table_frame.pack(fill="both", expand=True)
+        table_frame.pack(fill="both", expand=True)
+
+
+class Budget(ABPage):
+    def __init__(self, parent):
+        super().__init__(parent)
+
+    def setup(self):
+        table_frame = EditableTable(
+            self.frame,
+            get_budgets_df,
+            EditBudgetForm,
+        )
+        table_frame.pack(fill="both", expand=True)

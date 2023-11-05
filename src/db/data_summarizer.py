@@ -111,12 +111,12 @@ def get_monthly_income_df(cols=None):
 def get_budgets_df(cols=None):
     df = db.select(
         """
-            SELECT b.category, b.amount, b.start_date
+            SELECT b.id, b.category, b.amount, b.start_date
             FROM Budgets b JOIN Categories c ON b.category = c.category
         """,
         [],
     )
-    df = pd.DataFrame(df, columns=cols or ["category", "amount", "start_date"])
+    df = pd.DataFrame(df, columns=cols or ["id", "category", "amount", "start_date"])
     return df
 
 

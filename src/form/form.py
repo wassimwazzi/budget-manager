@@ -187,6 +187,58 @@ class ABForm(ABC):
         )
 
 
+class EditForm(ABForm):
+    def __init__(
+        self,
+        form: tk.Frame,
+        form_fields: list[FormField],
+        form_title: str,
+        entry_id: int,
+        action_buttons: list[tk.Button] = None,
+    ):
+        if not action_buttons:
+            action_buttons = [
+                tk.Button(
+                    form,
+                    text="Update",
+                    command=self.submit,
+                    font=("Arial", 12),
+                    bg="white",
+                ),
+                tk.Button(
+                    form,
+                    text="Delete",
+                    command=self.delete,
+                    font=("Arial", 12),
+                    bg="white",
+                ),
+            ]
+        self.action_buttons = action_buttons
+        super().__init__(
+            form=form,
+            form_fields=form_fields,
+            form_title=form_title,
+            action_buttons=action_buttons,
+        )
+        self.listeners = []
+        super().create_form()
+        self.entry_id = entry_id
+
+    def set_form_input_layout(self, i, form_field):
+        return super().set_form_input_horizontal(i, form_field, 3)
+
+    @abstractmethod
+    def delete(self):
+        pass
+
+    def register_listener(self, listener):
+        self.listeners.append(listener)
+
+    def notify_update(self):
+        for listener in self.listeners:
+            listener.notify_update()
+
+
 class TransactionsCsvForm(ABForm):
     def __init__(self, master: tk.Tk):
         self.master = master
@@ -412,7 +464,7 @@ class GenerateMonthlySummaryForm(ABForm):
         return (True, "Successfully generated summary")
 
 
-class EditTransactionForm(ABForm):
+class EditTransactionForm(EditForm):
     def __init__(self, master: tk.Tk, transaction_id: int):
         self.master = master
         self.form = tk.Frame(self.master)
@@ -433,31 +485,13 @@ class EditTransactionForm(ABForm):
                 "category", True, self.categories, self.form, display_name="Category"
             ),
         ]
-        self.action_buttons = [
-            tk.Button(
-                self.form,
-                text="Update",
-                command=self.submit,
-                font=("Arial", 12),
-                bg="white",
-            ),
-            tk.Button(
-                self.form,
-                text="Delete",
-                command=self.delete,
-                font=("Arial", 12),
-                bg="white",
-            ),
-        ]
         self.transaction_id = transaction_id
         super().__init__(
             self.form,
             self.form_fields,
             "Edit Transaction",
-            action_buttons=self.action_buttons,
+            transaction_id,
         )
-        self.listeners = []
-        super().create_form()
 
     def on_success(self) -> (bool, str):
         if not self.transaction_id:
@@ -477,11 +511,8 @@ class EditTransactionForm(ABForm):
             self.db.update(statement, [])
         except Error as e:
             return (False, str(e))
-        self.notify_update()
+        super().notify_update()
         return (True, "Successfully updated transaction")
-
-    def set_form_input_layout(self, i, form_field):
-        self.set_form_input_horizontal(i, form_field, 3)
 
     def delete(self):
         if not self.transaction_id:
@@ -489,7 +520,6 @@ class EditTransactionForm(ABForm):
                 text="Invalid transaction id", fg=ABForm.ERROR_COLOR
             )
             return
-        print(f"Deleting transaction {self.transaction_id}")
         self.db.delete(
             f"""
                 DELETE FROM transactions
@@ -501,14 +531,81 @@ class EditTransactionForm(ABForm):
         self.form_message_label.config(
             text="Successfully deleted row", fg=ABForm.SUCCESS_COLOR
         )
+        super().notify_update()
+
+
+class EditBudgetForm(EditForm):
+    def __init__(self, master: tk.Tk, budget_id: int):
+        self.master = master
+        self.form = tk.Frame(self.master)
+        self.form.pack(pady=20)
+        self.db = DBManager()
+        self.categories = [
+            c[0]
+            for c in self.db.select(
+                "SELECT category FROM categories  ORDER BY category ASC", []
+            )
+        ]
+        self.form_fields = [
+            DateField(
+                "start_date",
+                True,
+                self.form,
+                display_name="Date (YYYY-MM)",
+                date_format="YYYY-MM",
+            ),
+            NumberField("amount", True, self.form, display_name="Amount"),
+            DropdownField(
+                "category", True, self.categories, self.form, display_name="Category"
+            ),
+        ]
+        self.budget_id = budget_id
+        super().__init__(
+            self.form,
+            self.form_fields,
+            "Edit Budget",
+            budget_id,
+        )
+
+    def on_success(self) -> (bool, str):
+        if not self.budget_id:
+            return (False, "Invalid budget id")
+        # Data is valid, proceed with insertion
+        data = {}
+        for field in self.form_fields:
+            data[field.get_name()] = field.get_value()
+        try:
+            statement = f"""
+                    UPDATE budgets
+                    SET start_date = '{data["start_date"]}', amount = {data["amount"]},
+                        category = '{data["category"]}'
+                    WHERE id = {self.budget_id}
+            """
+
+            self.db.update(statement, [])
+        except Error as e:
+            return (False, str(e))
         self.notify_update()
+        return (True, "Successfully updated budget")
 
-    def register_listener(self, listener):
-        self.listeners.append(listener)
-
-    def notify_update(self):
-        for listener in self.listeners:
-            listener.notify_update()
+    def delete(self):
+        if not self.budget_id:
+            self.form_message_label.config(
+                text="Invalid budget id", fg=ABForm.ERROR_COLOR
+            )
+            return
+        self.db.delete(
+            f"""
+                DELETE FROM budgets
+                WHERE id = {self.budget_id}
+            """,
+            [],
+        )
+        self.clear_form()
+        self.form_message_label.config(
+            text="Successfully deleted row", fg=ABForm.SUCCESS_COLOR
+        )
+        self.notify_update()
 
 
 class AddTransactionForm(ABForm):
@@ -596,7 +693,13 @@ class AddBudgetForm(ABForm):
                 "category", True, self.categories, self.form, display_name="Category"
             ),
             NumberField("amount", True, self.form, display_name="Budget"),
-            DateField("start_date", True, self.form, display_name="Month (YYYY-MM)", date_format="YYYY-MM"),
+            DateField(
+                "start_date",
+                True,
+                self.form,
+                display_name="Month (YYYY-MM)",
+                date_format="YYYY-MM",
+            ),
         ]
         super().__init__(self.form, self.form_fields, "Add Budget")
         super().create_form()
