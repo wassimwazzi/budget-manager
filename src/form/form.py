@@ -251,8 +251,13 @@ class EditForm(ABForm):
             listener.notify_update()
 
 
-class TransactionsCsvForm(ABForm):
-    def __init__(self, master: tk.Tk):
+class TransactionsCsvForm(EditForm):
+    """
+    Made it an EditForm even though it doesn't edit anything.
+    The methods of an EditForm are useful for this use case.
+    """
+
+    def __init__(self, master: tk.Tk, *args):
         self.master = master
         self.form = tk.Frame(self.master)
         self.form.pack(pady=20)
@@ -270,9 +275,24 @@ class TransactionsCsvForm(ABForm):
                 display_name="CSV File",
             ),
         ]
+        self.action_buttons = [
+            tk.Button(
+                self.form,
+                text="Submit",
+                command=super().submit,
+                font=("Arial", 12),
+                bg="white",
+            )
+        ]
         self.db = DBManager()
         self.text_classifier = SimpleClassifier()
-        super().__init__(self.form, self.form_fields, "Upload CSV")
+        super().__init__(
+            self.form,
+            self.form_fields,
+            "Upload CSV",
+            None,
+            action_buttons=self.action_buttons,
+        )
         super().create_form()
 
     def infer_category(self, row, categories):
@@ -362,15 +382,7 @@ class TransactionsCsvForm(ABForm):
             [status, message, id],
         )
 
-    def create_data_from_csv(self, filename):
-        # insert file into db
-        file_record_id = self.db.insert(
-            """
-                INSERT INTO files (filename)
-                VALUES (?)
-            """,
-            [filename],
-        )
+    def create_data_from_csv(self, filename, file_record_id):
         try:
             with open(filename, "r", encoding="utf-8") as f:
                 df = pd.read_csv(f)
@@ -467,12 +479,32 @@ class TransactionsCsvForm(ABForm):
 
     def on_success(self) -> (bool, str):
         data = self.form_fields[0].get_value()
+        # insert file into db
+        file_record_id = self.db.insert(
+            """
+                INSERT INTO files (filename)
+                VALUES (?)
+            """,
+            [data],
+        )
         # parse csv in a separate thread
         thread = threading.Thread(
-            target=self.create_data_from_csv, args=(data,), daemon=True
+            target=self.create_data_from_csv, args=(data, file_record_id), daemon=True
         )
         thread.start()
+        super().notify_update()
         return (True, "Successfully submited file: " + data)
+
+    def get_form_fields(self) -> list[FormField]:
+        # empty list to block ability to edit form
+        return []
+
+    def delete(self):
+        # TODO: delete transactions from file
+        pass
+
+    def new(self):
+        pass
 
 
 class GenerateMonthlySummaryForm(ABForm):

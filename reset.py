@@ -22,7 +22,11 @@ if __name__ == "__main__":
     if choice == "1":
         dotenv.load_dotenv(dotenv_path=".env.dev")
     elif choice == "2":
-        dotenv.load_dotenv(dotenv_path=".env.prod")
+        choice = input(
+            "Are you sure? This is production databse. Did you backup? (y/n): "
+        )
+        if choice == "y":
+            dotenv.load_dotenv(dotenv_path=".env.prod")
     else:
         print("Invalid choice")
         exit(1)
