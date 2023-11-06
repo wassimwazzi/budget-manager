@@ -282,23 +282,27 @@ class Home(ABPage):
 
         # add ratio column
         df["Ratio"] = np.where(df["Budget"] == 0, 0, df["Remaining"] / df["Budget"])
-        # sort by ratio
         df = df.sort_values(by="Ratio", ascending=True).reset_index(drop=True)
+
         # Add column headings
         for col in cols:
             tree.heading(col, text=col)
             tree.column(col, width=100)
 
-        colormap = LinearSegmentedColormap.from_list(
-            "redgreen", ["red", "yellow", "green"]
+        poscolormap = LinearSegmentedColormap.from_list(
+            "yellowred", ["orange", "green"]
         )
+        negcolormap = LinearSegmentedColormap.from_list("redyellow", ["orange", "red"])
         # Insert data into the Treeview
         for _, row in df.iterrows():
             row_values = [row[col] for col in cols]
             tree.insert("", "end", values=row_values, tags=(row["Category"],))
 
             # Color each row based on how much remains in the budget
-            color = colormap(row["Ratio"])
+            if row["Remaining"] < 0:
+                color = negcolormap(abs(row["Ratio"]))
+            else:
+                color = poscolormap(row["Ratio"])
             # convert to hex
             color = "#%02x%02x%02x" % (
                 int(color[0] * 255),
