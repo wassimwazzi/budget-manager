@@ -340,16 +340,39 @@ class TransactionsCsvForm(ABForm):
                 row["Category"] = result
         return df
 
+    def update_file_status(self, id, status, message):
+        self.db.update(
+            """
+                UPDATE files
+                SET status = ?, message = ?
+                WHERE id = ?
+            """,
+            [status, message, id],
+        )
+
     def create_data_from_csv(self, filename):
+        # insert file into db
+        file_record_id = self.db.insert(
+            """
+                INSERT INTO files (filename)
+                VALUES (?)
+            """,
+            [filename],
+        )
         with open(filename, "r", encoding="utf-8") as f:
             df = pd.read_csv(f)
             # validate column names
             expected_columns = ["Date", "Description", "Amount", "Category", "Code"]
             auto_added_columns = ["Inferred_Category"]
             if not all(col in df.columns for col in expected_columns):
+                error_msg = (
+                    f"Invalid column names {df.columns}, must be {expected_columns}"
+                )
+                print(error_msg)
+                self.update_file_status(file_record_id, "Error", error_msg)
                 return (
                     False,
-                    f"Invalid column names {df.columns}, must be {expected_columns}",
+                    error_msg,
                 )
             df["Amount"] = df["Amount"].apply(
                 lambda x: float(x.replace(",", "")) if isinstance(x, str) else x
@@ -361,17 +384,15 @@ class TransactionsCsvForm(ABForm):
             # validate date
             today = pd.Timestamp.today()
             if not all(df["Date"] <= today):
+                print("Date cannot be in the future")
+                self.update_file_status(
+                    file_record_id, "Error", "Date cannot be in the future"
+                )
                 return (False, "Date cannot be in the future")
             # convert dates to YYYY-MM-DD string
             df["Date"] = df["Date"].apply(lambda x: x.strftime("%Y-%m-%d"))
 
             df["Code"] = df["Code"].apply(lambda x: str(x) if not pd.isnull(x) else "")
-            # validate category
-            # categories = self.db.select("SELECT category FROM categories", [])
-            # categories = [category[0] for category in categories]
-            # if not all(df["Category"].isin(categories)):
-            #     return (False, f"Invalid category, must be one of {categories}")
-
             # create category if not exists
             df["Category"] = df["Category"].apply(
                 lambda x: str(x).title() if not pd.isnull(x) else x
@@ -420,9 +441,13 @@ class TransactionsCsvForm(ABForm):
                 )
                 self.clear_form()
                 print("Successfully added transactions")
+                self.update_file_status(
+                    file_record_id, "Success", "Successfully processed"
+                )
                 return (True, "Successfully added transactions")
             except Error as e:
                 print(e)
+                self.update_file_status(file_record_id, "Error", str(e))
                 return (False, str(e))
 
     def on_success(self) -> (bool, str):
@@ -510,6 +535,7 @@ class EditTransactionForm(EditForm):
 
             self.db.update(statement, [])
         except Error as e:
+            print(e)
             return (False, str(e))
         super().notify_update()
         return (True, "Successfully updated transaction")
@@ -584,6 +610,7 @@ class EditBudgetForm(EditForm):
 
             self.db.update(statement, [])
         except Error as e:
+            print(e)
             return (False, str(e))
         self.notify_update()
         return (True, "Successfully updated budget")
@@ -650,6 +677,7 @@ class AddTransactionForm(ABForm):
                 data,
             )
         except Error as e:
+            print(e)
             return (False, str(e))
         return (True, "Successfully added transaction")
 
@@ -718,6 +746,7 @@ class AddBudgetForm(ABForm):
                 [data["category"], data["amount"], data["start_date"]],
             )
         except Error as e:
+            print(e)
             return (False, str(e))
         return (True, "Successfully added budget")
 

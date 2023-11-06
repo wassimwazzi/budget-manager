@@ -120,6 +120,20 @@ def get_budgets_df(cols=None):
     return df
 
 
+def get_files_df(cols=None):
+    df = db.select(
+        """
+            SELECT f.id, f.filename, f.message, f.status, f.date
+            FROM Files f
+        """,
+        [],
+    )
+    df = pd.DataFrame(
+        df, columns=cols or ["id", "filename", "message", "status", "date"]
+    )
+    return df
+
+
 def get_budget_vs_spend_plt(month):
     df = get_budget_summary_df(month)
 

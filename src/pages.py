@@ -15,6 +15,7 @@ from src.db.data_summarizer import (
     get_budget_summary_df,
     get_monthly_income_df,
     get_budgets_df,
+    get_files_df,
     get_budget_vs_spend_plt,
     get_spend_per_cateogire_pie_chart_plt,
     get_budget_minus_spend_bar_chart_plt,
@@ -264,9 +265,6 @@ class Home(ABPage):
 
 
 class Transactions(ABPage):
-    def __init__(self, parent):
-        super().__init__(parent)
-
     def setup(self):
         table_frame = EditableTable(
             self.frame,
@@ -277,9 +275,6 @@ class Transactions(ABPage):
 
 
 class Budget(ABPage):
-    def __init__(self, parent):
-        super().__init__(parent)
-
     def setup(self):
         table_frame = EditableTable(
             self.frame,
@@ -287,3 +282,40 @@ class Budget(ABPage):
             EditBudgetForm,
         )
         table_frame.pack(fill="both", expand=True)
+
+
+class Files(ABPage):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.table_frame = None
+
+    def show_table(self):
+        if self.table_frame:
+            self.table_frame.destroy()
+        self.table_frame = tk.Frame(self.frame)
+        self.table_frame.pack(fill="both", expand=True)
+        df = get_files_df()
+        # Create a Treeview widget to display the DataFrame
+        tree = ttk.Treeview(self.table_frame, columns=list(df.columns), show="headings")
+        cols = list(df.columns)
+        cols.remove("id")
+        # Add column headings
+        for col in cols:
+            tree.heading(col, text=col)
+            tree.column(col, width=100)
+
+        # Insert data into the Treeview
+        for _, row in df.iterrows():
+            row_values = [row[col] for col in cols]
+            tree.insert("", "end", values=row_values)
+
+        tree.pack(side="left", fill="both", expand=True)
+
+    def show_filter(self):
+        # Only refresh button
+        refresh_button = tk.Button(self.frame, text="Refresh", command=self.show_table)
+        refresh_button.pack()
+
+    def setup(self):
+        self.show_filter()
+        self.show_table()

@@ -4,10 +4,10 @@ from tkinter.constants import VERTICAL, Y, RIGHT, FALSE, LEFT, BOTH, TRUE, NW
 from tkinter import messagebox
 import matplotlib.pyplot as plt
 from screeninfo import get_monitors
-from src.pages import Home, DataEntry, Transactions, Budget
+from src.pages import Home, DataEntry, Transactions, Budget, Files
 from src.nav import NavFrame
 
-PAGES = [Home, DataEntry, Transactions, Budget]  # first page is the default page
+PAGES = [Home, DataEntry, Transactions, Budget, Files]  # first page is the default page
 
 
 class VerticalScrolledFrame(ttk.Frame):
