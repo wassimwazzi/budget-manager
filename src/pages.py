@@ -1,7 +1,9 @@
 import tkinter as tk
+import numpy as np
 from tkinter import ttk
 from abc import ABC, abstractmethod
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.colors import LinearSegmentedColormap
 from src.form.form import (
     TransactionsCsvForm,
     GenerateMonthlySummaryForm,
@@ -274,25 +276,42 @@ class Home(ABPage):
         self.budget_frames.append(upper_frame)
         upper_frame.pack(fill="both", expand=True)
         upper_frame.pack(pady=10)
+        cols = list(df.columns)
         # Create a Treeview widget to display the DataFrame
-        tree = ttk.Treeview(upper_frame, columns=list(df.columns), show="headings")
+        tree = ttk.Treeview(upper_frame, columns=cols, show="headings")
 
+        # add ratio column
+        df["Ratio"] = np.where(df["Budget"] == 0, 0, df["Remaining"] / df["Budget"])
+        # sort by ratio
+        df = df.sort_values(by="Ratio", ascending=True).reset_index(drop=True)
         # Add column headings
-        for col in df.columns:
+        for col in cols:
             tree.heading(col, text=col)
             tree.column(col, width=100)
 
+        colormap = LinearSegmentedColormap.from_list(
+            "redgreen", ["red", "yellow", "green"]
+        )
         # Insert data into the Treeview
         for _, row in df.iterrows():
-            tree.insert("", "end", values=list(row))
+            row_values = [row[col] for col in cols]
+            tree.insert("", "end", values=row_values, tags=(row["Category"],))
+
+            # Color each row based on how much remains in the budget
+            color = colormap(row["Ratio"])
+            # convert to hex
+            color = "#%02x%02x%02x" % (
+                int(color[0] * 255),
+                int(color[1] * 255),
+                int(color[2] * 255),
+            )
+            tree.tag_configure(row["Category"], background=color)
 
         # Add totals row
         # sum all columns except the category column
         totals = df.sum(axis=0)
         totals["Category"] = "Total"
         tree.insert("", "end", values=list(totals), tags="totals_row")
-        # choose a dark color since the font is white
-        # #333333 is a dark grey
         tree.tag_configure("totals_row", background="darkgrey")
 
         tree.pack(side="left", fill="both", expand=True)
