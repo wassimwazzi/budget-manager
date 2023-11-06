@@ -36,6 +36,7 @@ class EditableTable(tk.Frame):
         self.edit_form_frame = tk.Frame(self)
         self.edit_form_frame.pack(side="top", fill="both", expand=True)
         self.edit_form = edit_form_cls(self.edit_form_frame, None)
+        self.filters_submit_button = None
         self.show_filters()
         self.show_table()
 
@@ -135,6 +136,7 @@ class EditableTable(tk.Frame):
             ),
         )
         submit_button.grid(row=1, column=5)
+        self.filters_submit_button = submit_button
 
     def filter_table(self, sort_col, sort_asc, search_col, search_str):
         # get the transactions df
@@ -160,6 +162,8 @@ class EditableTable(tk.Frame):
     def refresh(self):
         self.data = None
         self.show_table()
+        if self.filters_submit_button:
+            self.filters_submit_button.invoke()
 
 
 class ABPage(tk.Frame, ABC):
