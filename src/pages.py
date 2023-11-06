@@ -256,6 +256,15 @@ class Home(ABPage):
         for _, row in df.iterrows():
             tree.insert("", "end", values=list(row))
 
+        # Add totals row
+        # sum all columns except the category column
+        totals = df.sum(axis=0)
+        totals["Category"] = "Total"
+        tree.insert("", "end", values=list(totals), tags="totals_row")
+        # choose a dark color since the font is white
+        # #333333 is a dark grey
+        tree.tag_configure("totals_row", background="darkgrey")
+
         tree.pack(side="left", fill="both", expand=True)
 
         # create frame for plot
