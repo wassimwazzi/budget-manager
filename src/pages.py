@@ -40,6 +40,7 @@ class EditableTable(tk.Frame):
         self.filters_submit_button = None
         self.applied_search_filters = []
         self.filter_frame = None
+        self.filters = []
         self.show_filters()
         self.show_table()
 
@@ -92,9 +93,8 @@ class EditableTable(tk.Frame):
         tree.bind("<Button-1>", self.on_row_click)
 
     def show_filters(self):
-        if self.filter_frame:
-            self.filter_frame.destroy()
         # create a bar with filters and refresh button
+        self.filters = []
         filter_frame = tk.Frame(self)
         filter_frame.pack(pady=10, side="top")
         self.filter_frame = filter_frame
@@ -102,21 +102,24 @@ class EditableTable(tk.Frame):
         refresh_button = tk.Button(filter_frame, text="Refresh", command=self.refresh)
         # put on right side
         refresh_button.grid(row=1, column=0)
+        self.filters.append((tk.Button, refresh_button))
         # dropdown to allow to sort by each column
         sort_label = tk.Label(filter_frame, text="Sort by:")
         sort_label.grid(row=0, column=1)
         sort_options = self.display_columns
         sort_var = tk.StringVar()
         sort_var.set(sort_options[0])
+        self.filters.append((tk.OptionMenu, sort_var))
         sort_dropdown = tk.OptionMenu(filter_frame, sort_var, *sort_options)
         sort_dropdown.grid(row=1, column=1)
         # asc or desc checkbox
         sort_asc_var = tk.BooleanVar()
-        sort_asc_var.set(True)
+        sort_asc_var.set(False)
         sort_asc_checkbox = tk.Checkbutton(
             filter_frame, text="Ascending", variable=sort_asc_var
         )
         sort_asc_checkbox.grid(row=1, column=2)
+        self.filters.append((tk.Checkbutton, sort_asc_var))
         # dropdown for search column
         search_menu_label = tk.Label(filter_frame, text="Search column:")
         search_menu_label.grid(row=0, column=3)
@@ -124,12 +127,14 @@ class EditableTable(tk.Frame):
         search_menu_var.set(sort_options[0])
         search_menu = tk.OptionMenu(filter_frame, search_menu_var, *sort_options)
         search_menu.grid(row=1, column=3)
+        self.filters.append((tk.OptionMenu, search_menu_var))
         # search for a string in a column
         search_label = tk.Label(filter_frame, text="Search:")
         search_label.grid(row=0, column=4)
         search_var = tk.StringVar()
         search_entry = tk.Entry(filter_frame, textvariable=search_var)
         search_entry.grid(row=1, column=4)
+        self.filters.append((tk.Entry, search_var))
         # submit button
         submit_button = tk.Button(
             filter_frame,
@@ -143,17 +148,39 @@ class EditableTable(tk.Frame):
         )
         submit_button.grid(row=1, column=5)
         self.filters_submit_button = submit_button
+        self.filters.append((tk.Button, submit_button))
+
+    def show_applied_filters(self):
         # show applied search filters
         if self.applied_search_filters:
             applied_filters_label = tk.Label(
-                filter_frame, text="Applied filters:", font=("Arial", 10)
+                self.filter_frame, text="Applied filters:", font=("Arial", 10)
             )
-            applied_filters_label.grid(row=0, column=6)
+            applied_filters_label.grid(row=0, column=len(self.filters) + 1)
             filters = ", ".join(self.applied_search_filters)
-            applied_filters = tk.Label(filter_frame, text=filters)
-            applied_filters.grid(row=1, column=6)
+            applied_filters = tk.Label(self.filter_frame, text=filters)
+            applied_filters.grid(row=1, column=len(self.filters) + 1)
+        else:
+            # remove applied filters label
+            for widget in self.filter_frame.winfo_children():
+                if widget.grid_info()["column"] == len(self.filters) + 1:
+                    widget.destroy()
 
-    def filter_table(self, sort_col, sort_asc, search_col, search_str):
+    def clear_filters(self):
+        self.applied_search_filters = []
+        for filter_type, filter_value in self.filters:
+            if filter_type == tk.Entry:
+                filter_value.set("")
+            elif filter_type == tk.OptionMenu:
+                filter_value.set(self.display_columns[0])
+            elif filter_type == tk.Checkbutton:
+                filter_value.set(False)
+        self.show_applied_filters()
+        self.show_table()
+
+    def filter_table(
+        self, sort_col, sort_asc, search_col, search_str, update_filters=True
+    ):
         # get the transactions df
         if self.data is None:
             self.data = self.get_data_func()
@@ -169,22 +196,27 @@ class EditableTable(tk.Frame):
             drop=True
         )  # reset index so that it matches the row number in the table when editing
         # refresh the transactions table
-        if search_str:
+        if search_str and update_filters:
             self.applied_search_filters.append(search_col)
-        self.show_filters()
+        self.show_applied_filters()
         self.show_table()
 
     def notify_update(self):
-        self.refresh()
+        self.data = None
+        self.show_table()
+        # keep applied filters, if any
+        args = []
+        for filter_type, filter_value in self.filters:
+            if filter_type != tk.Button:
+                args.append(filter_value.get())
+        assert len(args) == 4
+        self.filter_table(*args[:4], update_filters=False)
 
     def refresh(self):
         self.data = None
         self.applied_search_filters = []
-        self.show_filters()
+        self.clear_filters()
         self.show_table()
-        # keep applied filters, if any
-        if self.filters_submit_button:
-            self.filters_submit_button.invoke()
 
 
 class ABPage(tk.Frame, ABC):
