@@ -250,12 +250,29 @@ def get_spend_per_cateogire_pie_chart_plt(month):
         [],
     )
     df = pd.DataFrame(transactions_for_month, columns=["category", "total"])
-    fig, ax = plt.subplots(figsize=(8, 8))  # You can adjust the size as needed
+    fig, ax = plt.subplots()  # Adjust the size as needed
 
-    ax.pie(df["total"], labels=df["category"], autopct="%1.1f%%")
+    # Calculate percentages and labels
+    total_spend = df["total"].sum()
+    percentages = df["total"] / total_spend * 100
+
+    # Plot the pie chart
+    wedges, texts, autotexts = ax.pie(
+        df["total"], labels=df["category"], autopct="%1.0f%%"
+    )
     ax.axis("equal")
     ax.set_title("Spend per category")
-    # set size of figure
+    percent_cuttoff = 5
+    # only show texts and autotexts if the percentage is greater than percent_cuttoff
+    for text, autotext, percent in zip(texts, autotexts, percentages):
+        text.set_visible(percent > percent_cuttoff)
+        autotext.set_visible(percent > percent_cuttoff)
+
+    legend_labels = [
+        f"{cat}: {percent:.1f}%" if percent < percent_cuttoff else cat
+        for cat, percent in zip(df["category"], percentages)
+    ]
+    ax.legend(title="Categories", labels=legend_labels)
     return fig
 
 
