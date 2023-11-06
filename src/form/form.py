@@ -304,7 +304,6 @@ class TransactionsCsvForm(EditForm):
         super().create_form()
 
     def infer_category(self, row, categories):
-        # TODO: make this take all rows, and batch process
         if row["Category"] in categories:
             print(
                 f"Using existing category for {row['Description']}: {row['Category']}"
@@ -439,14 +438,6 @@ class TransactionsCsvForm(EditForm):
                 )
                 categories = set(df["Category"])
 
-                # self.db.insert_many(
-                #     """
-                #         INSERT OR IGNORE INTO categories (category)
-                #         VALUES (?)
-                #     """,
-                #     [(category,) for category in categories if not pd.isnull(category)],
-                # )
-
                 existing_categories = [
                     category[0]
                     for category in self.db.select(
@@ -458,7 +449,7 @@ class TransactionsCsvForm(EditForm):
                 missing_categories = [
                     category
                     for category in categories
-                    if category not in existing_categories
+                    if category not in existing_categories and not pd.isnull(category)
                 ]
                 if missing_categories:
                     error_msg = f"Missing categories: {', '.join(missing_categories)}"
@@ -471,9 +462,16 @@ class TransactionsCsvForm(EditForm):
 
                 data = []
                 cols = expected_columns + auto_added_columns
-                # insert into db
+                labels = [
+                    category[0] + ". " + category[1]
+                    for category in self.db.select(
+                        "SELECT category, description FROM categories", []
+                    )
+                ]
                 for _, row in df.iterrows():
-                    category, was_inferred = self.infer_category(row, categories)
+                    category, was_inferred = self.infer_category(
+                        row, existing_categories
+                    )
                     row["Category"] = category
                     row["Inferred_Category"] = 1 if was_inferred else 0
                     row["file_id"] = file_record_id
