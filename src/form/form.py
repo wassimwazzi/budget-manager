@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import messagebox
 import threading
 import traceback
 from abc import ABC, abstractmethod
@@ -15,6 +16,15 @@ from src.form.fields import (
 )
 from src.db.dbmanager import DBManager
 from src.tools.text_classifier import GPTClassifier, SimpleClassifier
+
+
+def confirm_selection(func):
+    def wrapper(self, *args, **kwargs):
+        if messagebox.askokcancel("Confirm", "Are you sure?"):
+            return func(self, *args, **kwargs)
+        return
+
+    return wrapper
 
 
 class ABForm(ABC):
@@ -237,6 +247,7 @@ class EditForm(ABForm):
         return super().set_form_input_horizontal(i, form_field, 3)
 
     @abstractmethod
+    @confirm_selection
     def delete(self):
         pass
 
@@ -517,6 +528,7 @@ class TransactionsCsvForm(EditForm):
         super().notify_update()
         return (True, "Successfully submited file: " + data)
 
+    @confirm_selection
     def delete(self):
         if not self.entry_id:
             self.form_message_label.config(
@@ -630,6 +642,7 @@ class EditTransactionForm(EditForm):
         super().notify_update()
         return (True, "Successfully updated transaction")
 
+    @confirm_selection
     def delete(self):
         if not self.transaction_id:
             self.form_message_label.config(
@@ -802,6 +815,7 @@ class EditBudgetForm(EditForm):
         self.notify_update()
         return (True, "Successfully updated budget")
 
+    @confirm_selection
     def delete(self):
         if not self.budget_id:
             self.form_message_label.config(
@@ -937,6 +951,7 @@ class EditCategoryForm(EditForm):
         super().notify_update()
         return (True, "Successfully updated category")
 
+    @confirm_selection
     def delete(self):
         if not self.category_name:
             self.form_message_label.config(
