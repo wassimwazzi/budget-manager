@@ -60,7 +60,7 @@ class VerticalScrolledFrame(ttk.Frame):
 class BudgetApp(tk.Tk):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # self.minsize(*self.get_display_size())
+        self.geometry(f"{self.get_display_size()[0]}x{self.get_display_size()[1]}")
         # Add navbar
         nav_frame = NavFrame(self, self, PAGES, Home)
         nav_frame.pack(side="top", fill="both", expand=False)

@@ -74,7 +74,8 @@ class EditableTable(tk.Frame):
             columns=cols,
             show="headings",
         )
-
+        tree.pack(side="left", fill="both", expand=True)
+        
         # Add column headings
         for col in cols:
             tree.heading(col, text=col.title())
@@ -87,7 +88,6 @@ class EditableTable(tk.Frame):
             row_values = [row[col] for col in cols]
             tree.insert("", "end", values=row_values)
 
-        tree.pack(side="left", fill="both", expand=True)
         tree.bind("<Button-1>", self.on_row_click)
 
     def show_filters(self):
