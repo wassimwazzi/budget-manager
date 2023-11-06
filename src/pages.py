@@ -251,13 +251,6 @@ class ABPage(tk.Frame, ABC):
         self.setup()
 
 
-class DataEntry(ABPage):
-    def setup(self):
-        AddTransactionForm(self)
-        TransactionsCsvForm(self)
-        AddBudgetForm(self)
-
-
 class Home(ABPage):
     def __init__(self, parent):
         super().__init__(parent)
@@ -348,43 +341,6 @@ class Budget(ABPage):
             EditBudgetForm,
         )
         table_frame.pack(fill="both", expand=True)
-
-
-# class Files(ABPage):
-#     def __init__(self, parent):
-#         super().__init__(parent)
-#         self.table_frame = None
-
-#     def show_table(self):
-#         if self.table_frame:
-#             self.table_frame.destroy()
-#         self.table_frame = tk.Frame(self.frame)
-#         self.table_frame.pack(fill="both", expand=True)
-#         df = get_files_df()
-#         # Create a Treeview widget to display the DataFrame
-#         cols = list(df.columns)
-#         cols.remove("id")
-#         tree = ttk.Treeview(self.table_frame, columns=cols, show="headings")
-#         # Add column headings
-#         for col in cols:
-#             tree.heading(col, text=col)
-#             tree.column(col, width=100)
-
-#         # Insert data into the Treeview
-#         for _, row in df.iterrows():
-#             row_values = [row[col] for col in cols]
-#             tree.insert("", "end", values=row_values)
-
-#         tree.pack(side="left", fill="both", expand=True)
-
-#     def show_filter(self):
-#         # Only refresh button
-#         refresh_button = tk.Button(self.frame, text="Refresh", command=self.show_table)
-#         refresh_button.pack()
-
-#     def setup(self):
-#         self.show_filter()
-#         self.show_table()
 
 
 class Files(ABPage):
