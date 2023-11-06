@@ -37,6 +37,8 @@ class EditableTable(tk.Frame):
         self.edit_form_frame.pack(side="top", fill="both", expand=True)
         self.edit_form = edit_form_cls(self.edit_form_frame, None)
         self.filters_submit_button = None
+        self.applied_search_filters = []
+        self.filter_frame = None
         self.show_filters()
         self.show_table()
 
@@ -89,9 +91,12 @@ class EditableTable(tk.Frame):
         tree.bind("<Button-1>", self.on_row_click)
 
     def show_filters(self):
+        if self.filter_frame:
+            self.filter_frame.destroy()
         # create a bar with filters and refresh button
         filter_frame = tk.Frame(self)
-        filter_frame.pack(pady=10)
+        filter_frame.pack(pady=10, side="top")
+        self.filter_frame = filter_frame
         # create a button to refresh the transactions
         refresh_button = tk.Button(filter_frame, text="Refresh", command=self.refresh)
         # put on right side
@@ -137,6 +142,15 @@ class EditableTable(tk.Frame):
         )
         submit_button.grid(row=1, column=5)
         self.filters_submit_button = submit_button
+        # show applied search filters
+        if self.applied_search_filters:
+            applied_filters_label = tk.Label(
+                filter_frame, text="Applied filters:", font=("Arial", 10)
+            )
+            applied_filters_label.grid(row=0, column=6)
+            filters = ", ".join(self.applied_search_filters)
+            applied_filters = tk.Label(filter_frame, text=filters)
+            applied_filters.grid(row=1, column=6)
 
     def filter_table(self, sort_col, sort_asc, search_col, search_str):
         # get the transactions df
@@ -154,6 +168,9 @@ class EditableTable(tk.Frame):
             drop=True
         )  # reset index so that it matches the row number in the table when editing
         # refresh the transactions table
+        if search_str:
+            self.applied_search_filters.append(search_col)
+        self.show_filters()
         self.show_table()
 
     def notify_update(self):
@@ -161,7 +178,10 @@ class EditableTable(tk.Frame):
 
     def refresh(self):
         self.data = None
+        self.applied_search_filters = []
+        self.show_filters()
         self.show_table()
+        # keep applied filters, if any
         if self.filters_submit_button:
             self.filters_submit_button.invoke()
 

@@ -366,10 +366,11 @@ class TransactionsCsvForm(ABForm):
                 # validate column names
                 expected_columns = ["Date", "Description", "Amount", "Category", "Code"]
                 auto_added_columns = ["Inferred_Category"]
-                if not all(col in df.columns for col in expected_columns):
-                    error_msg = (
-                        f"Invalid column names {df.columns}, must be {expected_columns}"
-                    )
+                missing_cols = [
+                    col for col in expected_columns if col not in df.columns
+                ]
+                if missing_cols:
+                    error_msg = f"Missing columns: {', '.join(missing_cols)}"
                     print(error_msg)
                     self.update_file_status(file_record_id, "Error", error_msg)
                     return (
@@ -381,7 +382,7 @@ class TransactionsCsvForm(ABForm):
                 )
                 df["Amount"] = df["Amount"].apply(lambda x: round(x, 2))
                 # validate data types
-                df["Date"] = pd.to_datetime(df["Date"], format="mixed", dayfirst=True)
+                df["Date"] = pd.to_datetime(df["Date"], format="mixed", dayfirst=False)
                 # round to 2 decimal places
                 # validate date
                 today = pd.Timestamp.today()
