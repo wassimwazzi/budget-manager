@@ -281,7 +281,9 @@ class Home(ABPage):
         tree = ttk.Treeview(upper_frame, columns=cols, show="headings")
 
         # add ratio column
-        df["Ratio"] = np.where(df["Budget"] == 0, 0, df["Remaining"] / df["Budget"])
+        df["Ratio"] = np.where(
+            df["Budget"] == 0, df["Remaining"], df["Remaining"] / df["Budget"]
+        )
         df = df.sort_values(by="Ratio", ascending=True).reset_index(drop=True)
 
         # Add column headings
@@ -313,7 +315,10 @@ class Home(ABPage):
 
         # Add totals row
         # sum all columns except the category column
-        totals = df.sum(axis=0)
+        totals = df.sum(axis=0).apply(
+            lambda x: round(x, 2) if isinstance(x, (float, int)) else x
+        )
+
         totals["Category"] = "Total"
         tree.insert("", "end", values=list(totals), tags="totals_row")
         tree.tag_configure("totals_row", background="darkgrey")

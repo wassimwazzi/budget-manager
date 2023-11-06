@@ -91,7 +91,8 @@ def get_budget_summary_df(month, cols=None):
                 ORDER BY Remaining ASC
             )
 
-            SELECT * FROM TRANSACTIONSBUDGET
+            SELECT Category, Budget, ROUND(Actual, 2) AS Actual, ROUND(Remaining, 2) AS Remaining
+            FROM TRANSACTIONSBUDGET
             WHERE Actual > 0 OR budget > 0
             ;
         """,
