@@ -2,6 +2,7 @@ import tkinter as tk
 import numpy as np
 from tkinter import ttk
 from abc import ABC, abstractmethod
+import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.colors import LinearSegmentedColormap
 from src.form.form import (
@@ -234,6 +235,7 @@ class ABPage(tk.Frame, ABC):
         self.frame = tk.Frame(self)
         self.frame.pack(fill="both", expand=True)
         self.was_setup = False
+        self.figures = []
 
     def clicked(self):
         if not self.was_setup:
@@ -257,6 +259,11 @@ class ABPage(tk.Frame, ABC):
         self.clear()
         self.setup()
 
+    def clear_figures(self):
+        for fig in self.figures:
+            plt.close(fig)
+        self.figures = []
+
 
 class Home(ABPage):
     def __init__(self, parent):
@@ -265,6 +272,7 @@ class Home(ABPage):
         # self.setup()
 
     def notify(self, month):
+        self.clear_figures()
         self.budget_summary(month)
 
     def budget_summary(self, month):
@@ -330,6 +338,7 @@ class Home(ABPage):
         self.budget_frames.append(plot_frame)
         plot_frame.pack(pady=10)
         fig = get_budget_vs_spend_plt(month)
+        self.figures.append(fig)
         canvas = FigureCanvasTkAgg(fig, master=plot_frame)
         canvas.draw()
         canvas.get_tk_widget().pack(side="right", fill="both", expand=True)
@@ -339,6 +348,7 @@ class Home(ABPage):
         lower_frame.pack(fill="both", expand=True)
         # create pie chart
         fig = get_spend_per_cateogire_pie_chart_plt(month)
+        self.figures.append(fig)
         canvas = FigureCanvasTkAgg(fig, master=lower_frame)
         canvas.get_tk_widget().configure(width=500, height=500)
         canvas.draw()
@@ -346,6 +356,7 @@ class Home(ABPage):
 
         # create budget - spend bar chart
         fig = get_budget_minus_spend_bar_chart_plt(month)
+        self.figures.append(fig)
         canvas = FigureCanvasTkAgg(fig, master=lower_frame)
         canvas.get_tk_widget().configure(width=500, height=500)
         canvas.draw()
@@ -376,6 +387,7 @@ class Budget(ABPage):
         table_frame.pack(side="top", fill="both", expand=True)
 
         budget_history_plt = get_budget_history_plt()
+        self.figures.append(budget_history_plt)
         canvas = FigureCanvasTkAgg(budget_history_plt, master=self.frame)
         canvas.draw()
         canvas.get_tk_widget().pack(side="bottom", fill="both", expand=True, pady=10)
