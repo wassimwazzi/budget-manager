@@ -11,6 +11,7 @@ from src.form.fields import (
     NumberField,
     DropdownField,
     UploadFileField,
+    CheckBoxField,
 )
 from src.db.dbmanager import DBManager
 from src.tools.text_classifier import GPTClassifier, SimpleClassifier
@@ -194,7 +195,7 @@ class EditForm(ABForm):
         form: tk.Frame,
         form_fields: list[FormField],
         form_title: str,
-        entry_id: int,
+        entry_id: int | str,
         action_buttons: list[tk.Button] = None,
     ):
         if not action_buttons:
@@ -895,3 +896,88 @@ class AddBudgetForm(ABForm):
 
     def set_form_input_layout(self, i, form_field):
         self.set_form_input_vertical(i, form_field)
+
+
+class EditCategoryForm(EditForm):
+    def __init__(self, master: tk.Tk, category_name: str):
+        self.master = master
+        self.form = tk.Frame(self.master)
+        self.form.pack(pady=20)
+        self.db = DBManager()
+        self.form_fields = [
+            TextField("category", True, self.form, display_name="Category"),
+            TextField("description", True, self.form, display_name="Description"),
+            CheckBoxField("income", False, self.form, display_name="Is Income"),
+        ]
+        self.category_name = category_name
+        super().__init__(
+            self.form,
+            self.form_fields,
+            "Edit Budget",
+            category_name,
+        )
+
+    def on_success(self) -> (bool, str):
+        if not self.category_name:
+            return (False, "Selct a row first")
+        # Data is valid, proceed with insertion
+        data = {}
+        for field in self.form_fields:
+            data[field.get_name()] = field.get_value()
+        try:
+            statement = f"""
+                    UPDATE categories
+                    Set category = '{data["category"]}', description = '{data["description"]}',
+                        income = {1 if data["income"] else 0}
+                    WHERE category = '{self.category_name}'
+            """
+
+            self.db.update(statement, [])
+        except Error as e:
+            print(e)
+            return (False, str(e))
+        super().notify_update()
+        return (True, "Successfully updated category")
+
+    def delete(self):
+        if not self.category_name:
+            self.form_message_label.config(
+                text="Select a row first", fg=ABForm.ERROR_COLOR
+            )
+            return
+        self.db.delete(
+            f"""
+                DELETE FROM categories
+                WHERE category = '{self.category_name}'
+            """,
+            [],
+        )
+        self.clear_form()
+        self.form_message_label.config(
+            text="Successfully deleted row", fg=ABForm.SUCCESS_COLOR
+        )
+        super().notify_update()
+
+    def new(self):
+        # Data is valid, proceed with insertion
+        data = {}
+        for field in self.form_fields:
+            data[field.get_name()] = field.get_value()
+        try:
+            self.db.insert(
+                """
+                    INSERT INTO categories (category, description, income)
+                    VALUES (?, ?, ?)
+                """,
+                [data["category"], data["description"], data["income"]],
+            )
+        except Error as e:
+            print(e)
+            self.form_message_label.config(text=str(e), fg=ABForm.ERROR_COLOR)
+            return (False, str(e))
+        # self.clear_form()
+        super().notify_update()
+        self.form_message_label.config(
+            text="Successfully added category", fg=ABForm.SUCCESS_COLOR
+        )
+        return (True, "Successfully added category")

@@ -208,6 +208,19 @@ def get_files_df(cols=None):
     return df
 
 
+def get_categories_df(cols=None):
+    df = db.select(
+        """
+            SELECT c.category, c.income, c.description
+            FROM Categories c
+        """,
+        [],
+    )
+    df = pd.DataFrame(df, columns=cols or ["category", "income", "description"])
+    df["income"] = df["income"].apply(lambda x: "Yes" if x else "No")
+    return df
+
+
 def get_budget_vs_spend_plt(month):
     df = get_budget_summary_df(month)
 

@@ -11,6 +11,7 @@ class FieldType(Enum):
     NUMBER = "number"
     DROPDOWN = "dropdown"
     UPLOAD_FILE = "upload_file"
+    CHECKBOX = "checkbox"
 
 
 class FormField(ABC):
@@ -238,3 +239,30 @@ class UploadFileField(FormField):
     def clear(self):
         self.uploaded_file_path = None
         self.get_tk_field().config(text="Upload file", fg="black")
+
+class CheckBoxField(FormField):
+    def __init__(
+        self,
+        name: str,
+        required: bool,
+        form: tk.Frame,
+        display_name: str = None,
+    ):
+        super().__init__(name, FieldType.CHECKBOX, required, form, display_name)
+        self.clicked = tk.BooleanVar()
+        self.clicked.set(False)
+
+    def validate_value(self, value: str) -> (bool, str):
+        return (True, None)
+
+    def get_tk_field_template(self):
+        return tk.Checkbutton(self.form, variable=self.clicked)
+
+    def get_value(self) -> str:
+        return self.clicked.get()
+
+    def set_value(self, value: str):
+        self.clicked.set(value)
+
+    def clear(self):
+        self.clicked.set(False)

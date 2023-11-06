@@ -3,12 +3,11 @@ from tkinter import ttk
 from abc import ABC, abstractmethod
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from src.form.form import (
-    AddTransactionForm,
     TransactionsCsvForm,
     GenerateMonthlySummaryForm,
     EditTransactionForm,
     EditBudgetForm,
-    AddBudgetForm,
+    EditCategoryForm,
 )
 from src.db.data_summarizer import (
     get_transactions_df,
@@ -16,6 +15,7 @@ from src.db.data_summarizer import (
     get_monthly_income_df,
     get_budgets_df,
     get_files_df,
+    get_categories_df,
     get_budget_vs_spend_plt,
     get_spend_per_cateogire_pie_chart_plt,
     get_budget_minus_spend_bar_chart_plt,
@@ -24,13 +24,16 @@ from src.db.data_summarizer import (
 
 
 class EditableTable(tk.Frame):
-    def __init__(self, parent, get_data_func, edit_form_cls, *args, **kwargs):
+    def __init__(
+        self, parent, get_data_func, edit_form_cls, primary_key="id", *args, **kwargs
+    ):
         super().__init__(parent, *args, **kwargs)
         self.get_data_func = get_data_func
         self.data = get_data_func()
         self.columns = list(self.data.columns)
         self.display_columns = self.columns.copy()
-        self.display_columns.remove("id")
+        if primary_key == "id":
+            self.display_columns.remove("id")
         self.table_frame = tk.Frame(self)
         self.table_frame.pack(side="bottom", fill="both", expand=True)
         self.edit_form_cls = edit_form_cls
@@ -42,6 +45,7 @@ class EditableTable(tk.Frame):
         self.applied_search_filters = []
         self.filter_frame = None
         self.filters = []
+        self.primary_key = primary_key
         self.show_filters()
         self.show_table()
 
@@ -56,7 +60,7 @@ class EditableTable(tk.Frame):
             widget.destroy()
 
         row_id = event.widget.index(selected_row)
-        transaction_id = self.data.loc[int(row_id)]["id"]
+        transaction_id = self.data.loc[int(row_id)][self.primary_key]
         self.edit_form = self.edit_form_cls(self.edit_form_frame, transaction_id)
         self.edit_form.register_listener(self)
         fields = self.edit_form.get_form_fields()
@@ -355,5 +359,16 @@ class Files(ABPage):
             self.frame,
             get_files_df,
             TransactionsCsvForm,
+        )
+        table_frame.pack(fill="both", expand=True)
+
+
+class Categories(ABPage):
+    def setup(self):
+        table_frame = EditableTable(
+            self.frame,
+            get_categories_df,
+            EditCategoryForm,
+            primary_key="category",
         )
         table_frame.pack(fill="both", expand=True)
