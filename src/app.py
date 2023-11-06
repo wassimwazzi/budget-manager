@@ -7,7 +7,7 @@ from screeninfo import get_monitors
 from src.pages import Home, DataEntry, Transactions, Budget, Files
 from src.nav import NavFrame
 
-PAGES = [Home, DataEntry, Transactions, Budget, Files]  # first page is the default page
+PAGES = [Home, Transactions, Budget, Files]  # first page is the default page
 
 
 class VerticalScrolledFrame(ttk.Frame):
