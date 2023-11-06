@@ -245,6 +245,7 @@ def get_spend_per_cateogire_pie_chart_plt(month):
             SELECT c.category, SUM(t.amount) AS total
             FROM Transactions t JOIN Categories c ON t.category = c.category
             WHERE t.date >= '{start_date}' AND t.date <= '{end_date}'
+            AND c.income = 0
             GROUP BY c.category
         """,
         [],
