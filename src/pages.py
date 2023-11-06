@@ -296,9 +296,9 @@ class Files(ABPage):
         self.table_frame.pack(fill="both", expand=True)
         df = get_files_df()
         # Create a Treeview widget to display the DataFrame
-        tree = ttk.Treeview(self.table_frame, columns=list(df.columns), show="headings")
         cols = list(df.columns)
         cols.remove("id")
+        tree = ttk.Treeview(self.table_frame, columns=cols, show="headings")
         # Add column headings
         for col in cols:
             tree.heading(col, text=col)

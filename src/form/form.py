@@ -1,5 +1,6 @@
 import tkinter as tk
 import threading
+import traceback
 from abc import ABC, abstractmethod
 from sqlite3 import Error
 import pandas as pd
@@ -359,71 +360,79 @@ class TransactionsCsvForm(ABForm):
             """,
             [filename],
         )
-        with open(filename, "r", encoding="utf-8") as f:
-            df = pd.read_csv(f)
-            # validate column names
-            expected_columns = ["Date", "Description", "Amount", "Category", "Code"]
-            auto_added_columns = ["Inferred_Category"]
-            if not all(col in df.columns for col in expected_columns):
-                error_msg = (
-                    f"Invalid column names {df.columns}, must be {expected_columns}"
+        try:
+            with open(filename, "r", encoding="utf-8") as f:
+                df = pd.read_csv(f)
+                # validate column names
+                expected_columns = ["Date", "Description", "Amount", "Category", "Code"]
+                auto_added_columns = ["Inferred_Category"]
+                if not all(col in df.columns for col in expected_columns):
+                    error_msg = (
+                        f"Invalid column names {df.columns}, must be {expected_columns}"
+                    )
+                    print(error_msg)
+                    self.update_file_status(file_record_id, "Error", error_msg)
+                    return (
+                        False,
+                        error_msg,
+                    )
+                df["Amount"] = df["Amount"].apply(
+                    lambda x: float(x.replace(",", "")) if isinstance(x, str) else x
                 )
-                print(error_msg)
-                self.update_file_status(file_record_id, "Error", error_msg)
-                return (
-                    False,
-                    error_msg,
+                df["Amount"] = df["Amount"].apply(lambda x: round(x, 2))
+                # validate data types
+                df["Date"] = pd.to_datetime(df["Date"], format="mixed", dayfirst=True)
+                # round to 2 decimal places
+                # validate date
+                today = pd.Timestamp.today()
+                erroneous_dates = df[df["Date"] > today]["Date"]
+                if not erroneous_dates.empty:
+                    print("Date cannot be in the future")
+                    print(erroneous_dates)
+                    self.update_file_status(
+                        file_record_id, "Error", "Date cannot be in the future"
+                    )
+                    return (False, "Date cannot be in the future")
+                # convert dates to YYYY-MM-DD string
+                df["Date"] = df["Date"].apply(
+                    lambda x: x.strftime("%Y-%m-%d") if not pd.isnull(x) else None
                 )
-            df["Amount"] = df["Amount"].apply(
-                lambda x: float(x.replace(",", "")) if isinstance(x, str) else x
-            )
-            df["Amount"] = df["Amount"].apply(lambda x: round(x, 2))
-            # validate data types
-            df["Date"] = pd.to_datetime(df["Date"])
-            # round to 2 decimal places
-            # validate date
-            today = pd.Timestamp.today()
-            if not all(df["Date"] <= today):
-                print("Date cannot be in the future")
-                self.update_file_status(
-                    file_record_id, "Error", "Date cannot be in the future"
+
+                df["Code"] = df["Code"].apply(
+                    lambda x: str(x) if not pd.isnull(x) else ""
                 )
-                return (False, "Date cannot be in the future")
-            # convert dates to YYYY-MM-DD string
-            df["Date"] = df["Date"].apply(lambda x: x.strftime("%Y-%m-%d"))
+                # create category if not exists
+                df["Category"] = df["Category"].apply(
+                    lambda x: str(x).title() if not pd.isnull(x) else x
+                )
+                categories = set(df["Category"])
 
-            df["Code"] = df["Code"].apply(lambda x: str(x) if not pd.isnull(x) else "")
-            # create category if not exists
-            df["Category"] = df["Category"].apply(
-                lambda x: str(x).title() if not pd.isnull(x) else x
-            )
-            categories = set(df["Category"])
+                self.db.insert_many(
+                    """
+                        INSERT OR IGNORE INTO categories (category)
+                        VALUES (?)
+                    """,
+                    [(category,) for category in categories if not pd.isnull(category)],
+                )
 
-            self.db.insert_many(
-                """
-                    INSERT OR IGNORE INTO categories (category)
-                    VALUES (?)
-                """,
-                [(category,) for category in categories if not pd.isnull(category)],
-            )
+                categories = [
+                    category[0]
+                    for category in self.db.select(
+                        "SELECT category FROM categories", []
+                    )
+                ]
 
-            categories = [
-                category[0]
-                for category in self.db.select("SELECT category FROM categories", [])
-            ]
+                data = []
+                cols = expected_columns + auto_added_columns
+                # insert into db
+                for _, row in df.iterrows():
+                    category, was_inferred = self.infer_category(row, categories)
+                    row["Category"] = category
+                    row["Inferred_Category"] = 1 if was_inferred else 0
+                    row_data = tuple(row[col] for col in cols)
+                    data.append(row_data)
 
-            data = []
-            cols = expected_columns + auto_added_columns
-            # insert into db
-            for _, row in df.iterrows():
-                category, was_inferred = self.infer_category(row, categories)
-                row["Category"] = category
-                row["Inferred_Category"] = 1 if was_inferred else 0
-                row_data = tuple(row[col] for col in cols)
-                data.append(row_data)
-
-            # df = self.infer_categories(df, categories)
-            try:
+                # df = self.infer_categories(df, categories)
                 # TODO: make this a transaction
                 self.db.insert_many(
                     f"""
@@ -432,23 +441,17 @@ class TransactionsCsvForm(ABForm):
                     """,
                     data,
                 )
-                self.db.insert(
-                    """
-                        INSERT INTO FILES (filename)
-                        VALUES (?)
-                    """,
-                    [filename],
-                )
                 self.clear_form()
                 print("Successfully added transactions")
                 self.update_file_status(
                     file_record_id, "Success", "Successfully processed"
                 )
                 return (True, "Successfully added transactions")
-            except Error as e:
-                print(e)
-                self.update_file_status(file_record_id, "Error", str(e))
-                return (False, str(e))
+        except Exception as e:
+            print(e)
+            print(traceback.format_exc())
+            self.update_file_status(file_record_id, "Error", str(e))
+            return (False, str(e))
 
     def on_success(self) -> (bool, str):
         data = self.form_fields[0].get_value()
