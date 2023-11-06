@@ -438,20 +438,35 @@ class TransactionsCsvForm(EditForm):
                 )
                 categories = set(df["Category"])
 
-                self.db.insert_many(
-                    """
-                        INSERT OR IGNORE INTO categories (category)
-                        VALUES (?)
-                    """,
-                    [(category,) for category in categories if not pd.isnull(category)],
-                )
+                # self.db.insert_many(
+                #     """
+                #         INSERT OR IGNORE INTO categories (category)
+                #         VALUES (?)
+                #     """,
+                #     [(category,) for category in categories if not pd.isnull(category)],
+                # )
 
-                categories = [
+                existing_categories = [
                     category[0]
                     for category in self.db.select(
                         "SELECT category FROM categories", []
                     )
                 ]
+
+                # validate category exists
+                missing_categories = [
+                    category
+                    for category in categories
+                    if category not in existing_categories
+                ]
+                if missing_categories:
+                    error_msg = f"Missing categories: {', '.join(missing_categories)}"
+                    print(error_msg)
+                    self.update_file_status(file_record_id, "Error", error_msg)
+                    return (
+                        False,
+                        error_msg,
+                    )
 
                 data = []
                 cols = expected_columns + auto_added_columns
