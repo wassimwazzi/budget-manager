@@ -69,5 +69,4 @@ INSERT INTO CATEGORIES (CATEGORY, INCOME, DESCRIPTION) VALUES
     ('Travel', 0, 'Travel'),
     ('Investments', 0, 'Investments'),
     ('Savings', 0, 'Savings'),
-    ('Rent', 0, 'Rent'),
     ('Other', 0, 'Other');
