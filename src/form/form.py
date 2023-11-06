@@ -213,6 +213,13 @@ class EditForm(ABForm):
                     font=("Arial", 12),
                     bg="white",
                 ),
+                tk.Button(
+                    form,
+                    text="New",
+                    command=self.new,
+                    font=("Arial", 12),
+                    bg="white",
+                ),
             ]
         self.action_buttons = action_buttons
         super().__init__(
@@ -230,6 +237,10 @@ class EditForm(ABForm):
 
     @abstractmethod
     def delete(self):
+        pass
+
+    @abstractmethod
+    def new(self):
         pass
 
     def register_listener(self, listener):
@@ -524,7 +535,7 @@ class EditTransactionForm(EditForm):
 
     def on_success(self) -> (bool, str):
         if not self.transaction_id:
-            return (False, "Invalid transaction id")
+            return (False, "Select a row first")
         # Data is valid, proceed with insertion
         data = {}
         for field in self.form_fields:
@@ -547,7 +558,7 @@ class EditTransactionForm(EditForm):
     def delete(self):
         if not self.transaction_id:
             self.form_message_label.config(
-                text="Invalid transaction id", fg=ABForm.ERROR_COLOR
+                text="Select a row first", fg=ABForm.ERROR_COLOR
             )
             return
         self.db.delete(
@@ -563,80 +574,33 @@ class EditTransactionForm(EditForm):
         )
         super().notify_update()
 
-
-class EditBudgetForm(EditForm):
-    def __init__(self, master: tk.Tk, budget_id: int):
-        self.master = master
-        self.form = tk.Frame(self.master)
-        self.form.pack(pady=20)
-        self.db = DBManager()
-        self.categories = [
-            c[0]
-            for c in self.db.select(
-                "SELECT category FROM categories  ORDER BY category ASC", []
-            )
-        ]
-        self.form_fields = [
-            DateField(
-                "start_date",
-                True,
-                self.form,
-                display_name="Date (YYYY-MM)",
-                date_format="YYYY-MM",
-            ),
-            NumberField("amount", True, self.form, display_name="Amount"),
-            DropdownField(
-                "category", True, self.categories, self.form, display_name="Category"
-            ),
-        ]
-        self.budget_id = budget_id
-        super().__init__(
-            self.form,
-            self.form_fields,
-            "Edit Budget",
-            budget_id,
-        )
-
-    def on_success(self) -> (bool, str):
-        if not self.budget_id:
-            return (False, "Invalid budget id")
+    def new(self):
         # Data is valid, proceed with insertion
         data = {}
         for field in self.form_fields:
             data[field.get_name()] = field.get_value()
+        data["inferred_category"] = 0
+        cols = ["date", "description", "amount", "category", "code"]
+        data = [data[col] for col in cols]
+        data.append(0)  # inferred category
         try:
-            statement = f"""
-                    UPDATE budgets
-                    SET start_date = '{data["start_date"]}', amount = {data["amount"]},
-                        category = '{data["category"]}'
-                    WHERE id = {self.budget_id}
-            """
-
-            self.db.update(statement, [])
+            self.db.insert(
+                f"""
+                    INSERT INTO transactions ({', '.join(cols)}, inferred_category)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                data,
+            )
         except Error as e:
             print(e)
+            self.form_message_label.config(text=str(e), fg=ABForm.ERROR_COLOR)
             return (False, str(e))
-        self.notify_update()
-        return (True, "Successfully updated budget")
-
-    def delete(self):
-        if not self.budget_id:
-            self.form_message_label.config(
-                text="Invalid budget id", fg=ABForm.ERROR_COLOR
-            )
-            return
-        self.db.delete(
-            f"""
-                DELETE FROM budgets
-                WHERE id = {self.budget_id}
-            """,
-            [],
-        )
-        self.clear_form()
+        # self.clear_form()
+        super().notify_update()
         self.form_message_label.config(
-            text="Successfully deleted row", fg=ABForm.SUCCESS_COLOR
+            text="Successfully added transasction", fg=ABForm.SUCCESS_COLOR
         )
-        self.notify_update()
+        return (True, "Successfully added transaction")
 
 
 class AddTransactionForm(ABForm):
@@ -706,6 +670,105 @@ class AddTransactionForm(ABForm):
         self.error_labels[i - 1].grid(
             row=row_position * 3 + 3, column=(i - 1) % 3, padx=10
         )
+
+
+class EditBudgetForm(EditForm):
+    def __init__(self, master: tk.Tk, budget_id: int):
+        self.master = master
+        self.form = tk.Frame(self.master)
+        self.form.pack(pady=20)
+        self.db = DBManager()
+        self.categories = [
+            c[0]
+            for c in self.db.select(
+                "SELECT category FROM categories  ORDER BY category ASC", []
+            )
+        ]
+        self.form_fields = [
+            DateField(
+                "start_date",
+                True,
+                self.form,
+                display_name="Date (YYYY-MM)",
+                date_format="YYYY-MM",
+            ),
+            NumberField("amount", True, self.form, display_name="Amount"),
+            DropdownField(
+                "category", True, self.categories, self.form, display_name="Category"
+            ),
+        ]
+        self.budget_id = budget_id
+        super().__init__(
+            self.form,
+            self.form_fields,
+            "Edit Budget",
+            budget_id,
+        )
+
+    def on_success(self) -> (bool, str):
+        if not self.budget_id:
+            return (False, "Selct a row first")
+        # Data is valid, proceed with insertion
+        data = {}
+        for field in self.form_fields:
+            data[field.get_name()] = field.get_value()
+        try:
+            statement = f"""
+                    UPDATE budgets
+                    SET start_date = '{data["start_date"]}', amount = {data["amount"]},
+                        category = '{data["category"]}'
+                    WHERE id = {self.budget_id}
+            """
+
+            self.db.update(statement, [])
+        except Error as e:
+            print(e)
+            return (False, str(e))
+        self.notify_update()
+        return (True, "Successfully updated budget")
+
+    def delete(self):
+        if not self.budget_id:
+            self.form_message_label.config(
+                text="Select a row first", fg=ABForm.ERROR_COLOR
+            )
+            return
+        self.db.delete(
+            f"""
+                DELETE FROM budgets
+                WHERE id = {self.budget_id}
+            """,
+            [],
+        )
+        self.clear_form()
+        self.form_message_label.config(
+            text="Successfully deleted row", fg=ABForm.SUCCESS_COLOR
+        )
+        self.notify_update()
+
+    def new(self):
+        # Data is valid, proceed with insertion
+        data = {}
+        for field in self.form_fields:
+            data[field.get_name()] = field.get_value()
+        try:
+            self.db.insert(
+                """
+                    INSERT INTO budgets (category, amount, start_date)
+                    VALUES (?, ?, ?)
+                """,
+                [data["category"], data["amount"], data["start_date"]],
+            )
+        except Error as e:
+            print(e)
+            self.form_message_label.config(text=str(e), fg=ABForm.ERROR_COLOR)
+            return (False, str(e))
+        # self.clear_form()
+        super().notify_update()
+        self.form_message_label.config(
+            text="Successfully added budget", fg=ABForm.SUCCESS_COLOR
+        )
+        return (True, "Successfully added budget")
 
 
 class AddBudgetForm(ABForm):

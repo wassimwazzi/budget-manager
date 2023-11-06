@@ -36,6 +36,7 @@ class EditableTable(tk.Frame):
         self.edit_form_frame = tk.Frame(self)
         self.edit_form_frame.pack(side="top", fill="both", expand=True)
         self.edit_form = edit_form_cls(self.edit_form_frame, None)
+        self.edit_form.register_listener(self)
         self.filters_submit_button = None
         self.applied_search_filters = []
         self.filter_frame = None
@@ -75,7 +76,7 @@ class EditableTable(tk.Frame):
             show="headings",
         )
         tree.pack(side="left", fill="both", expand=True)
-        
+
         # Add column headings
         for col in cols:
             tree.heading(col, text=col.title())
