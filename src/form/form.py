@@ -46,8 +46,8 @@ class ABForm(ABC):
                     form,
                     text="Submit",
                     command=self.submit,
-                    font=("Arial", 12),
-                    bg="white",
+                    font=("Arial", 15),
+                    fg="dark green",
                 )
             ]
         self.action_buttons = action_buttons
@@ -203,22 +203,22 @@ class EditForm(ABForm):
                     form,
                     text="Update",
                     command=self.submit,
-                    font=("Arial", 12),
-                    bg="white",
+                    font=("Arial", 15),
+                    fg="dark goldenrod",
                 ),
                 tk.Button(
                     form,
                     text="Delete",
                     command=self.delete,
-                    font=("Arial", 12),
-                    bg="white",
+                    font=("Arial", 15),
+                    fg="red",
                 ),
                 tk.Button(
                     form,
                     text="New",
                     command=self.new,
-                    font=("Arial", 12),
-                    bg="white",
+                    font=("Arial", 15),
+                    fg="dark green",
                 ),
             ]
         self.action_buttons = action_buttons
@@ -280,15 +280,15 @@ class TransactionsCsvForm(EditForm):
                 self.form,
                 text="Submit",
                 command=super().submit,
-                font=("Arial", 12),
-                bg="white",
+                font=("Arial", 15),
+                fg="dark green",
             ),
             tk.Button(
                 self.form,
                 text="Delete",
                 command=self.delete,
-                font=("Arial", 12),
-                bg="white",
+                font=("Arial", 15),
+                fg="red",
             ),
         ]
         self.db = DBManager()
