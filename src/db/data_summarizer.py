@@ -101,6 +101,72 @@ def get_budget_summary_df(month, cols=None):
     return df
 
 
+def get_budget_history_df(cols=None, category=None):
+    # df = db.select(
+    #     f"""
+    #         SELECT b.id, b.category, b.amount, b.start_date
+    #         FROM Budgets b JOIN Categories c ON b.category = c.category
+    #         {"WHERE b.category = " + category if category else ""}
+    #         ORDER BY b.start_date ASC
+    #     """,
+    #     [],
+    # )
+    df = db.select(
+        f"""
+            WITH Budget_Dates AS (
+                SELECT
+                    DISTINCT START_DATE AS Month
+                FROM
+                    Budgets
+            ),
+            Budgets_With_Date AS (
+                SELECT b.id, b.CATEGORY, b.AMOUNT, b.START_DATE, 0 AS AUTO
+                FROM Budgets b
+                JOIN Budget_Dates bd ON b.START_DATE = bd.Month
+            ),
+            Budgets_With_No_Date AS (
+                SELECT
+                    b.id,
+                    b.CATEGORY,
+                    b.AMOUNT,
+                    bd.Month,
+                    B.START_DATE,
+                    1 AS AUTO
+                FROM
+                    Budgets b
+                    JOIN Budget_Dates bd on bd.Month != b.START_DATE
+                WHERE bd.Month NOT IN (SELECT START_DATE FROM BUDGETS WHERE CATEGORY = b.CATEGORY)
+            ),
+            MinMonthDiff AS (
+                SELECT category, 
+                    month,
+                    MIN(ABS(START_DATE - month)) AS min_diff
+                FROM Budgets_With_No_Date
+                GROUP BY category, month
+            ),
+            Budget_History AS (
+                SELECT t1.id, t1.CATEGORY, t1.AMOUNT, t1.START_DATE
+                FROM Budgets_With_No_Date t1
+                JOIN MinMonthDiff t2
+                ON t1.category = t2.category
+                AND t1.month = t2.month
+                AND ABS(t1.START_DATE - t2.month) = t2.min_diff
+                UNION ALL
+                SELECT id, CATEGORY, AMOUNT, START_DATE
+                FROM Budgets_With_Date
+                ORDER BY CATEGORY, START_DATE
+            )
+            SELECT * FROM Budget_History
+            {"WHERE CATEGORY = " + category if category else ""}
+            ORDER BY CATEGORY, START_DATE ASC
+            ;
+        """,
+        [],
+    )
+    df = pd.DataFrame(df, columns=cols or ["id", "category", "amount", "start_date"])
+    return df
+
+
 def get_monthly_income_df(cols=None):
     df = db.select(
         """
@@ -216,4 +282,33 @@ def get_budget_minus_spend_bar_chart_plt(month):
 
     plt.tight_layout()  # Automatically adjust subplot parameters to prevent clipping
 
+    return fig
+
+
+def get_budget_history_plt(category=None):
+    budget_history_df = get_budget_history_df()
+    fig, ax = plt.subplots()  # Adjust the figure size as needed
+    dates = budget_history_df["start_date"].unique()
+    # convert the dates to datetime objects
+    dates = [datetime.strptime(date, "%Y-%m") for date in dates]
+    # sort the dates from earliest to latest
+    dates.sort()
+
+    # plot the amount over time for each category
+    # label each line with its category
+    # show points on the line
+    # extend each line on both sides to the edge of the plot. Stay constant after the last date
+    for category in budget_history_df["category"].unique():
+        category_df = budget_history_df[budget_history_df["category"] == category]
+        ax.plot(
+            dates,
+            category_df["amount"],
+            label=category,
+            marker="o",
+        )
+    ax.set_xlabel("Date")
+    ax.set_ylabel("Amount")
+    ax.set_title("Budget history")
+    ax.legend()
+    plt.tight_layout()  # Automatically adjust subplot parameters to prevent clipping
     return fig

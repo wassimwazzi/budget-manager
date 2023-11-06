@@ -19,6 +19,7 @@ from src.db.data_summarizer import (
     get_budget_vs_spend_plt,
     get_spend_per_cateogire_pie_chart_plt,
     get_budget_minus_spend_bar_chart_plt,
+    get_budget_history_plt,
 )
 
 
@@ -340,7 +341,12 @@ class Budget(ABPage):
             get_budgets_df,
             EditBudgetForm,
         )
-        table_frame.pack(fill="both", expand=True)
+        table_frame.pack(side="top", fill="both", expand=True)
+
+        budget_history_plt = get_budget_history_plt()
+        canvas = FigureCanvasTkAgg(budget_history_plt, master=self.frame)
+        canvas.draw()
+        canvas.get_tk_widget().pack(side="bottom", fill="both", expand=True, pady=10)
 
 
 class Files(ABPage):
