@@ -231,6 +231,10 @@ class UploadFileField(FormField):
     def get_value(self) -> str:
         return self.uploaded_file_path
 
+    def set_value(self, value: str):
+        self.uploaded_file_path = value
+        self.get_tk_field().config(text=value, fg="black")
+
     def clear(self):
         self.uploaded_file_path = None
         self.get_tk_field().config(text="Upload file", fg="black")

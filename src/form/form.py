@@ -257,7 +257,7 @@ class TransactionsCsvForm(EditForm):
     The methods of an EditForm are useful for this use case.
     """
 
-    def __init__(self, master: tk.Tk, *args):
+    def __init__(self, master: tk.Tk, entry_id: int):
         self.master = master
         self.form = tk.Frame(self.master)
         self.form.pack(pady=20)
@@ -282,7 +282,14 @@ class TransactionsCsvForm(EditForm):
                 command=super().submit,
                 font=("Arial", 12),
                 bg="white",
-            )
+            ),
+            tk.Button(
+                self.form,
+                text="Delete",
+                command=self.delete,
+                font=("Arial", 12),
+                bg="white",
+            ),
         ]
         self.db = DBManager()
         self.text_classifier = SimpleClassifier()
@@ -290,7 +297,7 @@ class TransactionsCsvForm(EditForm):
             self.form,
             self.form_fields,
             "Upload CSV",
-            None,
+            entry_id,
             action_buttons=self.action_buttons,
         )
         super().create_form()
@@ -495,13 +502,34 @@ class TransactionsCsvForm(EditForm):
         super().notify_update()
         return (True, "Successfully submited file: " + data)
 
-    def get_form_fields(self) -> list[FormField]:
-        # empty list to block ability to edit form
-        return []
-
     def delete(self):
-        # TODO: delete transactions from file
-        pass
+        if not self.entry_id:
+            self.form_message_label.config(
+                text="Select a row first", fg=ABForm.ERROR_COLOR
+            )
+            return
+        # delete transactions from file
+        # keep file, but set state to deleted
+        self.db.delete(
+            f"""
+                DELETE FROM transactions
+                WHERE id = {self.entry_id}
+            """,
+            [],
+        )
+        self.db.update(
+            f"""
+                UPDATE files
+                SET status = 'Deleted'
+                WHERE id = {self.entry_id}
+            """,
+            [],
+        )
+        self.form_message_label.config(
+            text="Successfully deleted file and its transactions",
+            fg=ABForm.SUCCESS_COLOR,
+        )
+        super().notify_update()
 
     def new(self):
         pass
