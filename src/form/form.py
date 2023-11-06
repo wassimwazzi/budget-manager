@@ -395,7 +395,7 @@ class TransactionsCsvForm(EditForm):
                 df = pd.read_csv(f)
                 # validate column names
                 expected_columns = ["Date", "Description", "Amount", "Category", "Code"]
-                auto_added_columns = ["Inferred_Category"]
+                auto_added_columns = ["Inferred_Category", "file_id"]
                 missing_cols = [
                     col for col in expected_columns if col not in df.columns
                 ]
@@ -460,6 +460,7 @@ class TransactionsCsvForm(EditForm):
                     category, was_inferred = self.infer_category(row, categories)
                     row["Category"] = category
                     row["Inferred_Category"] = 1 if was_inferred else 0
+                    row["file_id"] = file_record_id
                     row_data = tuple(row[col] for col in cols)
                     data.append(row_data)
 
@@ -513,7 +514,7 @@ class TransactionsCsvForm(EditForm):
         self.db.delete(
             f"""
                 DELETE FROM transactions
-                WHERE id = {self.entry_id}
+                WHERE file_id = {self.entry_id}
             """,
             [],
         )

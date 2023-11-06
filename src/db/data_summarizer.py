@@ -21,7 +21,11 @@ def get_end_of_month(month: str):
 
 def get_transactions_df(cols=None):
     transactions = db.select(
-        "SELECT id, date, description, amount, category, code, inferred_category FROM transactions",
+        """
+        SELECT t.id, t.date, t.description, t.amount, t.category, t.code, t.inferred_category, f.filename
+        FROM transactions t LEFT OUTER JOIN files f ON t.file_id = f.id
+        ORDER BY t.date DESC
+        """,
         [],
     )
     df = pd.DataFrame(
@@ -34,12 +38,16 @@ def get_transactions_df(cols=None):
             "category",
             "code",
             "inferred category",
+            "filename",
         ],
     )
     # df["date"] = pd.to_datetime(df["date"], format="%Y-%m-%d")
     df["amount"] = df["amount"].apply(lambda x: round(float(x), 2))
     df["inferred category"] = df["inferred category"].apply(
         lambda x: "No" if x == 0 else "Yes"
+    )
+    df["filename"] = df["filename"].apply(
+        lambda x: x.split("/")[-1].split("\\")[-1] if x else "No file"
     )
     if cols:
         df = df[cols]
