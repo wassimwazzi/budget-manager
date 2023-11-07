@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from screeninfo import get_monitors
 from src.pages import Home, Transactions, Budget, Files, Categories
 from src.nav import NavFrame
+from src.constants import TKINTER_BACKGROUND_COLOR
 
 PAGES = [
     Home,
@@ -101,6 +102,8 @@ class BudgetApp(tk.Tk):
 
 def run():
     app = BudgetApp()
+    app.title("Budget App")
+    app.configure(bg=TKINTER_BACKGROUND_COLOR)
 
     def on_closing():
         if messagebox.askokcancel("Quit", "Do you want to quit?"):

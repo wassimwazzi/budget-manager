@@ -22,7 +22,7 @@ from src.db.data_summarizer import (
     get_files_df,
     get_categories_df,
     get_budget_vs_spend_plt,
-    get_spend_per_cateogire_pie_chart_plt,
+    get_spend_per_category_pie_chart_plt,
     get_budget_minus_spend_bar_chart_plt,
     get_budget_history_plt,
 )
@@ -356,7 +356,7 @@ class Home(ABPage):
         lower_frame = tk.Frame(self.budget_frame)
         lower_frame.pack(fill="both", expand=True, side="bottom")
         # create pie chart
-        fig = get_spend_per_cateogire_pie_chart_plt(month)
+        fig = get_spend_per_category_pie_chart_plt(month)
         self.figures.append(fig)
         canvas = FigureCanvasTkAgg(fig, master=lower_frame)
         canvas.draw()
@@ -381,7 +381,14 @@ class Transactions(ABPage):
             get_transactions_df,
             EditTransactionForm,
         )
-        table_frame.pack(fill="both", expand=True)
+        table_frame.pack(fill="both", expand=True, side="top")
+
+        pie_chart_plt = get_spend_per_category_pie_chart_plt()
+        self.figures.append(pie_chart_plt)
+        canvas = FigureCanvasTkAgg(pie_chart_plt, master=self.frame)
+        canvas.draw()
+        canvas.get_tk_widget().pack(side="bottom", fill="both", expand=True, pady=10)
+
 
 
 class Budget(ABPage):

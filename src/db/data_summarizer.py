@@ -3,6 +3,7 @@ import calendar
 import matplotlib.pyplot as plt
 import pandas as pd
 from src.db.dbmanager import DBManager
+from src.constants import TKINTER_BACKGROUND_COLOR
 
 db = DBManager()
 
@@ -226,7 +227,8 @@ def get_budget_vs_spend_plt(month):
     df = get_budget_summary_df(month)
 
     fig, ax = plt.subplots()  # Adjust the figure size as needed
-
+    fig.patch.set_facecolor(TKINTER_BACKGROUND_COLOR)
+    ax.set_facecolor(TKINTER_BACKGROUND_COLOR)
     # Create a bar chart of the budget vs. actual for each category
     width = 0.4
     x = range(len(df["Category"]))
@@ -250,22 +252,35 @@ def get_budget_vs_spend_plt(month):
     return fig
 
 
-def get_spend_per_cateogire_pie_chart_plt(month):
-    # Pie chart of spend per category
-    start_date = datetime.strptime(month, "%Y-%m").strftime("%Y-%m-01")
-    end_date = get_end_of_month(month)
-    transactions_for_month = db.select(
-        f"""
-            SELECT c.category, SUM(t.amount) AS total
-            FROM Transactions t JOIN Categories c ON t.category = c.category
-            WHERE t.date >= '{start_date}' AND t.date <= '{end_date}'
-            AND c.income = 0
-            GROUP BY c.category
-        """,
-        [],
-    )
+def get_spend_per_category_pie_chart_plt(month=None):
+    if month:
+        # Pie chart of spend per category
+        start_date = datetime.strptime(month, "%Y-%m").strftime("%Y-%m-01")
+        end_date = get_end_of_month(month)
+        transactions_for_month = db.select(
+            f"""
+                SELECT c.category, SUM(t.amount) AS total
+                FROM Transactions t JOIN Categories c ON t.category = c.category
+                WHERE t.date >= '{start_date}' AND t.date <= '{end_date}'
+                AND c.income = 0
+                GROUP BY c.category
+            """,
+            [],
+        )
+    else:
+        transactions_for_month = db.select(
+            """
+                SELECT c.category, SUM(t.amount) AS total
+                FROM Transactions t JOIN Categories c ON t.category = c.category
+                WHERE c.income = 0
+                GROUP BY c.category
+            """,
+            [],
+        )
     df = pd.DataFrame(transactions_for_month, columns=["category", "total"])
     fig, ax = plt.subplots()  # Adjust the size as needed
+    fig.patch.set_facecolor(TKINTER_BACKGROUND_COLOR)
+    ax.set_facecolor(TKINTER_BACKGROUND_COLOR)
 
     # Calculate percentages and labels
     total_spend = df["total"].sum()
@@ -276,24 +291,26 @@ def get_spend_per_cateogire_pie_chart_plt(month):
         df["total"], labels=df["category"], autopct="%1.0f%%"
     )
     ax.axis("equal")
-    ax.set_title("Spend per category")
+    title = f"Spend Per Category for {month}" if month else "Historical Spend Per Category"
+    ax.set_title(title)
     percent_cuttoff = 3
     # only show texts and autotexts if the percentage is greater than percent_cuttoff
     for text, autotext, percent in zip(texts, autotexts, percentages):
         text.set_visible(percent > percent_cuttoff)
         autotext.set_visible(percent > percent_cuttoff)
 
-    legend_labels = [
-        f"{cat}: {percent:.1f}%" if percent < percent_cuttoff else cat
-        for cat, percent in zip(df["category"], percentages)
-    ]
+    # legend_labels = [
+    #     f"{cat}: {percent:.1f}%" if percent < percent_cuttoff else cat
+    #     for cat, percent in zip(df["category"], percentages)
+    # ]
     # ax.legend(title="Categories", labels=legend_labels, loc="lower left")
     return fig
-
 
 def get_budget_minus_spend_bar_chart_plt(month):
     df = get_budget_summary_df(month)
     fig, ax = plt.subplots()  # Adjust the figure size as needed
+    fig.patch.set_facecolor(TKINTER_BACKGROUND_COLOR)
+    ax.set_facecolor(TKINTER_BACKGROUND_COLOR)
 
     # Create a bar chart of the budget vs. actual for each category
     width = 0.4
@@ -320,6 +337,9 @@ def get_budget_minus_spend_bar_chart_plt(month):
 def get_budget_history_plt(category=None):
     budget_history_df = get_budget_history_df()
     fig, ax = plt.subplots()  # Adjust the figure size as needed
+    fig.patch.set_facecolor(TKINTER_BACKGROUND_COLOR)
+    ax.set_facecolor(TKINTER_BACKGROUND_COLOR)
+    
     dates = budget_history_df["start_date"].unique()
     # convert the dates to datetime objects
     dates = [datetime.strptime(date, "%Y-%m") for date in dates]
