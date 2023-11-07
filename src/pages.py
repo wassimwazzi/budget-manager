@@ -1,5 +1,7 @@
 import tkinter as tk
 import numpy as np
+import calendar
+from datetime import datetime
 from tkinter import ttk
 from abc import ABC, abstractmethod
 import matplotlib.pyplot as plt
@@ -268,8 +270,8 @@ class ABPage(tk.Frame, ABC):
 class Home(ABPage):
     def __init__(self, parent):
         super().__init__(parent)
-        self.budget_frames = []
-        # self.setup()
+        self.budget_frame = tk.Frame(self.frame)
+        self.budget_frame.pack(fill="both", expand=True)
 
     def notify(self, month):
         self.clear_figures()
@@ -277,23 +279,32 @@ class Home(ABPage):
 
     def budget_summary(self, month):
         df = get_budget_summary_df(month)
-        if self.budget_frames:
-            for frame in self.budget_frames:
-                frame.destroy()
-        upper_frame = tk.Frame(self.frame)
-        self.budget_frames.append(upper_frame)
-        upper_frame.pack(fill="both", expand=True)
+        self.budget_frame.destroy()
+        self.budget_frame = tk.Frame(self)
+        self.budget_frame.pack(fill="both", expand=True)
+        
+        # add header label
+        header_frame = tk.Frame(self.budget_frame)
+        header_frame.pack(fill="both", expand=True)
+        month_number = int(month.split("-")[1])
+        header_label = tk.Label(
+            header_frame,
+            text=f"Budget Summary for {calendar.month_name[month_number]}, {month.split('-')[0]}",
+            font=("Arial", 20),
+        )
+        header_label.pack(side="top")
+
+        upper_frame = tk.Frame(self.budget_frame)
+        upper_frame.pack(fill="both", expand=True, side="top")
         upper_frame.pack(pady=10)
         cols = list(df.columns)
         # Create a Treeview widget to display the DataFrame
         tree = ttk.Treeview(upper_frame, columns=cols, show="headings")
-
         # add ratio column
         df["Ratio"] = np.where(
             df["Budget"] == 0, df["Remaining"], df["Remaining"] / df["Budget"]
         )
         df = df.sort_values(by="Ratio", ascending=True).reset_index(drop=True)
-
         # Add column headings
         for col in cols:
             tree.heading(col, text=col)
@@ -335,7 +346,6 @@ class Home(ABPage):
 
         # create frame for plot
         plot_frame = tk.Frame(upper_frame)
-        self.budget_frames.append(plot_frame)
         plot_frame.pack(pady=10)
         fig = get_budget_vs_spend_plt(month)
         self.figures.append(fig)
@@ -343,14 +353,12 @@ class Home(ABPage):
         canvas.draw()
         canvas.get_tk_widget().pack(side="right", fill="both", expand=True)
 
-        lower_frame = tk.Frame(self.frame)
-        self.budget_frames.append(lower_frame)
-        lower_frame.pack(fill="both", expand=True)
+        lower_frame = tk.Frame(self.budget_frame)
+        lower_frame.pack(fill="both", expand=True, side="bottom")
         # create pie chart
         fig = get_spend_per_cateogire_pie_chart_plt(month)
         self.figures.append(fig)
         canvas = FigureCanvasTkAgg(fig, master=lower_frame)
-        canvas.get_tk_widget().configure(width=500, height=500)
         canvas.draw()
         canvas.get_tk_widget().pack(side="left", fill="both", expand=True)
 
@@ -358,7 +366,6 @@ class Home(ABPage):
         fig = get_budget_minus_spend_bar_chart_plt(month)
         self.figures.append(fig)
         canvas = FigureCanvasTkAgg(fig, master=lower_frame)
-        canvas.get_tk_widget().configure(width=500, height=500)
         canvas.draw()
         canvas.get_tk_widget().pack(side="right", fill="both", expand=True)
 

@@ -277,7 +277,7 @@ def get_spend_per_cateogire_pie_chart_plt(month):
     )
     ax.axis("equal")
     ax.set_title("Spend per category")
-    percent_cuttoff = 5
+    percent_cuttoff = 3
     # only show texts and autotexts if the percentage is greater than percent_cuttoff
     for text, autotext, percent in zip(texts, autotexts, percentages):
         text.set_visible(percent > percent_cuttoff)
@@ -287,7 +287,7 @@ def get_spend_per_cateogire_pie_chart_plt(month):
         f"{cat}: {percent:.1f}%" if percent < percent_cuttoff else cat
         for cat, percent in zip(df["category"], percentages)
     ]
-    ax.legend(title="Categories", labels=legend_labels, loc="upper left")
+    # ax.legend(title="Categories", labels=legend_labels, loc="lower left")
     return fig
 
 
