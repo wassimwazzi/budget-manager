@@ -287,7 +287,7 @@ def get_spend_per_cateogire_pie_chart_plt(month):
         f"{cat}: {percent:.1f}%" if percent < percent_cuttoff else cat
         for cat, percent in zip(df["category"], percentages)
     ]
-    ax.legend(title="Categories", labels=legend_labels)
+    ax.legend(title="Categories", labels=legend_labels, loc="upper left")
     return fig
 
 
