@@ -391,7 +391,7 @@ class Transactions(ABPage):
             self.frame,
             get_transactions_df,
             EditTransactionForm,
-            callback=self.show_total_spent,
+            extra_callback=self.show_total_spent,
         )
         table_frame.pack(fill="both", expand=True, side="top")
 
