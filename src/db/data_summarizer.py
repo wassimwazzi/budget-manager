@@ -54,6 +54,17 @@ def get_transactions_df(cols=None):
         df = df[cols]
     return df
 
+def get_transactions_totals_df():
+    totals = db.select(
+        """
+            SELECT SUM(AMOUNT) AS TOTAL, INCOME
+            FROM TRANSACTIONS join CATEGORIES on TRANSACTIONS.CATEGORY = CATEGORIES.CATEGORY
+            GROUP BY INCOME
+        """,
+        [],
+    )
+    df = pd.DataFrame(totals, columns=["total", "income"])
+    return df
 
 def get_budget_summary_df(month, cols=None):
     """

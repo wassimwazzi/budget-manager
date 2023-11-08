@@ -16,6 +16,7 @@ from src.form.form import (
 )
 from src.db.data_summarizer import (
     get_transactions_df,
+    get_transactions_totals_df,
     get_budget_summary_df,
     get_monthly_income_df,
     get_budgets_df,
@@ -396,11 +397,19 @@ class Transactions(ABPage):
         canvas.get_tk_widget().pack(side="bottom", fill="both", expand=True, pady=10)
     
     def show_total_spent(self, data, frame):
-        total_spent = data["amount"].sum()
+        # sum amount where 
+        df = get_transactions_totals_df()
+        # spent is row where income = 0
+        total_spent = df[df["income"] == 0]["total"].iloc[0]
+        total_income = df[df["income"] == 1]["total"].iloc[0]
         total_spent_label = tk.Label(
             frame, text=f"Total money spent: {total_spent}"
         )
+        total_earnt_label = tk.Label(
+            frame, text=f"Total money earnt: {total_income}"
+        )
         total_spent_label.pack(side="bottom", pady=10)
+        total_earnt_label.pack(side="bottom", pady=10)
 
 
 class Budget(ABPage):
