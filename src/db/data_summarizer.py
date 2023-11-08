@@ -372,6 +372,7 @@ def get_budget_history_plt(category=None):
     ax.set_xlabel("Date")
     ax.set_ylabel("Amount")
     ax.set_title("Budget history")
-    ax.legend()
+    # show legend outside of the plot
+    ax.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
     plt.tight_layout()  # Automatically adjust subplot parameters to prevent clipping
     return fig

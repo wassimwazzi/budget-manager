@@ -31,8 +31,8 @@ from src.db.data_summarizer import (
 
 class EditableTable(tk.Frame):
     def __init__(
-        self, parent, get_data_func, edit_form_cls, primary_key="id", callback=None,
-        *args, **kwargs
+        self, parent, get_data_func, edit_form_cls, primary_key="id", extra_callback=None,
+        call_on_udpate=None, *args, **kwargs
     ):
         super().__init__(parent, *args, **kwargs)
         self.get_data_func = get_data_func
@@ -53,7 +53,10 @@ class EditableTable(tk.Frame):
         self.filter_frame = None
         self.filters = []
         self.primary_key = primary_key
-        self.callback = callback
+        # Called to add custom widgets
+        self.extra_callback = extra_callback
+        # Called whenever the table is updated, in case other widgets need to be refreshed
+        self.call_on_update = call_on_udpate
         self.show_filters()
         self.show_table()
 
@@ -103,8 +106,8 @@ class EditableTable(tk.Frame):
             row_values = [row[col] for col in cols]
             tree.insert("", "end", values=row_values)
 
-        if self.callback:
-            self.callback(self.data, self.table_frame)
+        if self.extra_callback:
+            self.extra_callback(self.data, self.table_frame)
 
         tree.bind("<Button-1>", self.on_row_click)
 
@@ -227,6 +230,8 @@ class EditableTable(tk.Frame):
                 args.append(filter_value.get())
         assert len(args) == 4
         self.filter_table(*args[:4], update_filters=False)
+        if self.call_on_update:
+            self.call_on_update()
 
     def refresh(self):
         self.data = None
@@ -418,14 +423,18 @@ class Budget(ABPage):
             self.frame,
             get_budgets_df,
             EditBudgetForm,
+            call_on_udpate=self.show_plt,
         )
         table_frame.pack(side="top", fill="both", expand=True)
+        self.show_plt()
 
+    def show_plt(self):
         budget_history_plt = get_budget_history_plt()
         self.figures.append(budget_history_plt)
         canvas = FigureCanvasTkAgg(budget_history_plt, master=self.frame)
         canvas.draw()
         canvas.get_tk_widget().pack(side="bottom", fill="both", expand=True, pady=10)
+
 
 class Files(ABPage):
     def setup(self):
