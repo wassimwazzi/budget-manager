@@ -640,7 +640,8 @@ class EditTransactionForm(EditForm):
             print(e)
             return (False, str(e))
         super().notify_update()
-        return (True, "Successfully updated transaction")
+        transaction_descriptor = data["code"] or data["description"]
+        return (True, "Successfully updated transaction " + transaction_descriptor)
 
     @confirm_selection
     def delete(self):
@@ -669,15 +670,15 @@ class EditTransactionForm(EditForm):
             data[field.get_name()] = field.get_value()
         data["inferred_category"] = 0
         cols = ["date", "description", "amount", "category", "code"]
-        data = [data[col] for col in cols]
-        data.append(0)  # inferred category
+        vals = [data[col] for col in cols]
+        vals.append(0)  # inferred category
         try:
             self.db.insert(
                 f"""
                     INSERT INTO transactions ({', '.join(cols)}, inferred_category)
                     VALUES (?, ?, ?, ?, ?, ?)
                 """,
-                data,
+                vals,
             )
         except Error as e:
             print(e)
@@ -685,10 +686,11 @@ class EditTransactionForm(EditForm):
             return (False, str(e))
         # self.clear_form()
         super().notify_update()
+        transaction_descriptor = data["code"] or data["description"]
         self.form_message_label.config(
-            text="Successfully added transasction", fg=ABForm.SUCCESS_COLOR
+            text="Successfully added transasction " + transaction_descriptor, fg=ABForm.SUCCESS_COLOR
         )
-        return (True, "Successfully added transaction")
+        return (True, "Successfully added transaction " + transaction_descriptor)
 
 
 class AddTransactionForm(ABForm):
@@ -722,20 +724,21 @@ class AddTransactionForm(ABForm):
             data[field.get_name()] = field.get_value()
         data["inferred_category"] = 0
         cols = ["date", "description", "amount", "category", "code"]
-        data = [data[col] for col in cols]
-        data.append(0)  # inferred category
+        vals = [data[col] for col in cols]
+        vals.append(0)  # inferred category
         try:
             self.db.insert(
                 f"""
                     INSERT INTO transactions ({', '.join(cols)}, inferred_category)
                     VALUES (?, ?, ?, ?, ?, ?)
                 """,
-                data,
+                vals,
             )
         except Error as e:
             print(e)
             return (False, str(e))
-        return (True, "Successfully added transaction")
+        transaction_descriptor = data["code"] or data["description"]
+        return (True, "Successfully added transaction " + transaction_descriptor)
 
     def set_form_input_layout(self, i, form_field):
         # i is the row number of the form field. Starts at 1
@@ -813,7 +816,8 @@ class EditBudgetForm(EditForm):
             print(e)
             return (False, str(e))
         self.notify_update()
-        return (True, "Successfully updated budget")
+        budget_descriptor = data["category"] + " " + data["start_date"]
+        return (True, "Successfully updated budget for " + budget_descriptor)
 
     @confirm_selection
     def delete(self):
@@ -854,10 +858,11 @@ class EditBudgetForm(EditForm):
             return (False, str(e))
         # self.clear_form()
         super().notify_update()
+        budget_descriptor = data["category"] + " " + data["start_date"]
         self.form_message_label.config(
-            text="Successfully added budget", fg=ABForm.SUCCESS_COLOR
+            text="Successfully added budget " + budget_descriptor, fg=ABForm.SUCCESS_COLOR
         )
-        return (True, "Successfully added budget")
+        return (True, "Successfully added budget " + budget_descriptor)
 
 
 class AddBudgetForm(ABForm):
@@ -904,7 +909,8 @@ class AddBudgetForm(ABForm):
         except Error as e:
             print(e)
             return (False, str(e))
-        return (True, "Successfully added budget")
+        budget_descriptor = data["category"] + " " + data["start_date"]
+        return (True, "Successfully added budget " + budget_descriptor)
 
     def set_form_input_layout(self, i, form_field):
         self.set_form_input_vertical(i, form_field)
@@ -949,7 +955,8 @@ class EditCategoryForm(EditForm):
             print(e)
             return (False, str(e))
         super().notify_update()
-        return (True, "Successfully updated category")
+        category_descriptor = data["category"]
+        return (True, "Successfully updated category " + category_descriptor)
 
     @confirm_selection
     def delete(self):
@@ -990,7 +997,8 @@ class EditCategoryForm(EditForm):
             return (False, str(e))
         # self.clear_form()
         super().notify_update()
+        category_descriptor = data["category"]
         self.form_message_label.config(
-            text="Successfully added category", fg=ABForm.SUCCESS_COLOR
+            text="Successfully added category " + category_descriptor, fg=ABForm.SUCCESS_COLOR
         )
-        return (True, "Successfully added category")
+        return (True, "Successfully added category " + category_descriptor)
