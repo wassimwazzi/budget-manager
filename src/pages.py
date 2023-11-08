@@ -30,7 +30,8 @@ from src.db.data_summarizer import (
 
 class EditableTable(tk.Frame):
     def __init__(
-        self, parent, get_data_func, edit_form_cls, primary_key="id", *args, **kwargs
+        self, parent, get_data_func, edit_form_cls, primary_key="id", callback=None,
+        *args, **kwargs
     ):
         super().__init__(parent, *args, **kwargs)
         self.get_data_func = get_data_func
@@ -51,6 +52,7 @@ class EditableTable(tk.Frame):
         self.filter_frame = None
         self.filters = []
         self.primary_key = primary_key
+        self.callback = callback
         self.show_filters()
         self.show_table()
 
@@ -86,7 +88,7 @@ class EditableTable(tk.Frame):
             columns=cols,
             show="headings",
         )
-        tree.pack(side="left", fill="both", expand=True)
+        tree.pack(side="top", fill="both", expand=True)
 
         # Add column headings
         for col in cols:
@@ -99,6 +101,9 @@ class EditableTable(tk.Frame):
             # make sure row values are in same order as columns
             row_values = [row[col] for col in cols]
             tree.insert("", "end", values=row_values)
+
+        if self.callback:
+            self.callback(self.data, self.table_frame)
 
         tree.bind("<Button-1>", self.on_row_click)
 
@@ -380,6 +385,7 @@ class Transactions(ABPage):
             self.frame,
             get_transactions_df,
             EditTransactionForm,
+            callback=self.show_total_spent,
         )
         table_frame.pack(fill="both", expand=True, side="top")
 
@@ -388,7 +394,13 @@ class Transactions(ABPage):
         canvas = FigureCanvasTkAgg(pie_chart_plt, master=self.frame)
         canvas.draw()
         canvas.get_tk_widget().pack(side="bottom", fill="both", expand=True, pady=10)
-
+    
+    def show_total_spent(self, data, frame):
+        total_spent = data["amount"].sum()
+        total_spent_label = tk.Label(
+            frame, text=f"Total money spent: {total_spent}"
+        )
+        total_spent_label.pack(side="bottom", pady=10)
 
 
 class Budget(ABPage):
@@ -405,7 +417,6 @@ class Budget(ABPage):
         canvas = FigureCanvasTkAgg(budget_history_plt, master=self.frame)
         canvas.draw()
         canvas.get_tk_widget().pack(side="bottom", fill="both", expand=True, pady=10)
-
 
 class Files(ABPage):
     def setup(self):
