@@ -5,6 +5,7 @@ import pandas as pd
 from src.db.dbmanager import DBManager
 from src.constants import TKINTER_BACKGROUND_COLOR
 
+
 db = DBManager()
 
 
@@ -54,6 +55,7 @@ def get_transactions_df(cols=None):
         df = df[cols]
     return df
 
+
 def get_transactions_totals_df():
     totals = db.select(
         """
@@ -65,6 +67,7 @@ def get_transactions_totals_df():
     )
     df = pd.DataFrame(totals, columns=["total", "income"])
     return df
+
 
 def get_budget_summary_df(month, cols=None):
     """
@@ -115,69 +118,78 @@ def get_budget_summary_df(month, cols=None):
 
 
 def get_budget_history_df(cols=None, category=None):
-    # df = db.select(
-    #     f"""
-    #         SELECT b.id, b.category, b.amount, b.start_date
-    #         FROM Budgets b JOIN Categories c ON b.category = c.category
-    #         {"WHERE b.category = " + category if category else ""}
-    #         ORDER BY b.start_date ASC
-    #     """,
-    #     [],
-    # )
-    df = db.select(
-        f"""
-            WITH Budget_Dates AS (
-                SELECT
-                    DISTINCT START_DATE AS Month
-                FROM
-                    Budgets
-            ),
-            Budgets_With_Date AS (
-                SELECT b.id, b.CATEGORY, b.AMOUNT, b.START_DATE, 0 AS AUTO
-                FROM Budgets b
-                JOIN Budget_Dates bd ON b.START_DATE = bd.Month
-            ),
-            Budgets_With_No_Date AS (
-                SELECT
-                    b.id,
-                    b.CATEGORY,
-                    b.AMOUNT,
-                    bd.Month,
-                    B.START_DATE,
-                    1 AS AUTO
-                FROM
-                    Budgets b
-                    JOIN Budget_Dates bd on bd.Month != b.START_DATE
-                WHERE bd.Month NOT IN (SELECT START_DATE FROM BUDGETS WHERE CATEGORY = b.CATEGORY)
-            ),
-            MinMonthDiff AS (
-                SELECT category, 
-                    month,
-                    MIN(ABS(START_DATE - month)) AS min_diff
-                FROM Budgets_With_No_Date
-                GROUP BY category, month
-            ),
-            Budget_History AS (
-                SELECT t1.id, t1.CATEGORY, t1.AMOUNT, t1.START_DATE
-                FROM Budgets_With_No_Date t1
-                JOIN MinMonthDiff t2
-                ON t1.category = t2.category
-                AND t1.month = t2.month
-                AND ABS(t1.START_DATE - t2.month) = t2.min_diff
-                UNION ALL
-                SELECT id, CATEGORY, AMOUNT, START_DATE
-                FROM Budgets_With_Date
-                ORDER BY CATEGORY, START_DATE
-            )
-            SELECT * FROM Budget_History
-            {"WHERE CATEGORY = " + category if category else ""}
-            ORDER BY CATEGORY, START_DATE ASC
-            ;
+    dates = db.select(
+        """
+        SELECT DISTINCT START_DATE AS Month
+        FROM Budgets
         """,
         [],
     )
-    df = pd.DataFrame(df, columns=cols or ["id", "category", "amount", "start_date"])
-    return df
+
+    budgets = db.select(
+        """
+        SELECT b.CATEGORY, b.AMOUNT, b.START_DATE
+        FROM Budgets b
+        """,
+        [],
+    )
+
+    dates_df = pd.DataFrame(dates, columns=["month"])
+    budgets_df = pd.DataFrame(budgets, columns=["category", "amount", "start_date"])
+    # convert to datetime
+    budgets_df["start_date"] = pd.to_datetime(budgets_df["start_date"], format="%Y-%m")
+    # for each date, get the budget for each category
+    # if there is no budget for that category, get the budget from the previous month where there is a budget for that category
+    # if there is no budget for that category in the previous month, set the budget to 0
+    for month in dates_df["month"]:
+        # convert to datetime
+        month = datetime.strptime(month, "%Y-%m")
+        print(month)
+        for category in budgets_df["category"].unique():
+            print(category)
+            budget = budgets_df[
+                (budgets_df["category"] == category)
+                & (budgets_df["start_date"] == month)
+            ]
+            if not budget.empty:
+                continue
+
+            print(f"no budget for  {category} in {month}")
+            # create a new row for this category and month
+            # get the amount from a previous budget. If it exists, use that. Otherwise, use 0
+            # print start_dates before month
+            prev_budget = budgets_df[
+                (budgets_df["category"] == category)
+                & (budgets_df["start_date"] < month)
+            ]
+            # select the budget with the max start_date
+            prev_budget = prev_budget[
+                prev_budget["start_date"] == prev_budget["start_date"].max()
+            ]
+            if prev_budget.empty:
+                print(f"no previous budget for {category} before {month}")
+                budgets_df.loc[len(budgets_df.index)] = [
+                    category,
+                    0,  # amount
+                    month,
+                ]
+            else:
+                prev_budget = prev_budget.iloc[0]
+                print(f"previous budget for {category} before {month}: {prev_budget['amount']}")
+                budgets_df.loc[len(budgets_df.index)] = [
+                    category,
+                    prev_budget["amount"],
+                    month,
+                ]
+    # sort by category and start_date
+    budgets_df.sort_values(["category", "start_date"], inplace=True)
+    # convert start_date back to string
+    budgets_df["start_date"] = budgets_df["start_date"].apply(
+        lambda x: x.strftime("%Y-%m")
+    )
+    print("Result: ")
+    print(budgets_df)
+    return budgets_df
 
 
 def get_monthly_income_df(cols=None):
@@ -302,7 +314,9 @@ def get_spend_per_category_pie_chart_plt(month=None):
         df["total"], labels=df["category"], autopct="%1.0f%%"
     )
     ax.axis("equal")
-    title = f"Spend Per Category for {month}" if month else "Historical Spend Per Category"
+    title = (
+        f"Spend Per Category for {month}" if month else "Historical Spend Per Category"
+    )
     ax.set_title(title)
     percent_cuttoff = 3
     # only show texts and autotexts if the percentage is greater than percent_cuttoff
@@ -316,6 +330,7 @@ def get_spend_per_category_pie_chart_plt(month=None):
     # ]
     # ax.legend(title="Categories", labels=legend_labels, loc="lower left")
     return fig
+
 
 def get_budget_minus_spend_bar_chart_plt(month):
     df = get_budget_summary_df(month)
@@ -346,11 +361,12 @@ def get_budget_minus_spend_bar_chart_plt(month):
 
 
 def get_budget_history_plt(category=None):
+    # DF SHOULD BE SORTED BY CATEGORY AND START_DATE!!
     budget_history_df = get_budget_history_df()
     fig, ax = plt.subplots()  # Adjust the figure size as needed
     fig.patch.set_facecolor(TKINTER_BACKGROUND_COLOR)
     ax.set_facecolor(TKINTER_BACKGROUND_COLOR)
-    
+
     dates = budget_history_df["start_date"].unique()
     # convert the dates to datetime objects
     dates = [datetime.strptime(date, "%Y-%m") for date in dates]
@@ -376,3 +392,70 @@ def get_budget_history_plt(category=None):
     ax.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
     plt.tight_layout()  # Automatically adjust subplot parameters to prevent clipping
     return fig
+
+
+# dates = db.select(
+#     """
+#         SELECT DISTINCT START_DATE AS Month
+#         FROM Budgets
+#     """,
+#     [],
+# )
+
+# budgets = db.select(
+#     """
+#         SELECT b.CATEGORY, b.AMOUNT, b.START_DATE
+#         FROM Budgets b
+#     """,
+#     [],
+# )
+
+# dates_df = pd.DataFrame(dates, columns=["month"])
+# budgets_df = pd.DataFrame(budgets, columns=["category", "amount", "start_date"])
+# # convert to datetime
+# budgets_df["start_date"] = pd.to_datetime(budgets_df["start_date"], format="%Y-%m")
+# print(budgets_df)
+# # for each date, get the budget for each category
+# # if there is no budget for that category, get the budget from the previous month where there is a budget for that category
+# # if there is no budget for that category in the previous month, set the budget to 0
+# for month in dates_df["month"]:
+#     # convert to datetime
+#     month = datetime.strptime(month, "%Y-%m")
+#     print(month)
+#     for category in budgets_df["category"].unique():
+#         print(category)
+#         budget = budgets_df[
+#             (budgets_df["category"] == category) & (budgets_df["start_date"] == month)
+#         ]
+#         if budget.empty:
+#             print(f"no budget for  {category} in {month}")
+#             # create a new row for this category and month
+#             # get the amount from a previous budget. If it exists, use that. Otherwise, use 0
+#             # print start_dates before month
+#             prev_budget = budgets_df[
+#                 (budgets_df["category"] == category)
+#                 & (budgets_df["start_date"] < month)
+#             ]
+#             # select the budget with the max start_date
+#             prev_budget = prev_budget[
+#                 prev_budget["start_date"] == prev_budget["start_date"].max()
+#             ]
+#             print(prev_budget)
+#             if prev_budget.empty:
+#                 print(f"no previous budget for {category} before {month}")
+#                 budgets_df.loc[len(budgets_df.index)] = [
+#                     category,
+#                     0,  # amount
+#                     month,
+#                 ]
+#             else:
+#                 prev_budget = prev_budget.iloc[0]
+#                 print(f"previous budget for {category} before {month}: {prev_budget}")
+#                 budgets_df.loc[len(budgets_df.index)] = [
+#                     category,
+#                     prev_budget["amount"],
+#                     month,
+#                 ]
+# # sort by category and start_date
+# budgets_df.sort_values(["category", "start_date"], inplace=True)
+# print(budgets_df)
