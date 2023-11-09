@@ -31,8 +31,15 @@ from src.db.data_summarizer import (
 
 class EditableTable(tk.Frame):
     def __init__(
-        self, parent, get_data_func, edit_form_cls, primary_key="id", extra_callback=None,
-        call_on_udpate=None, *args, **kwargs
+        self,
+        parent,
+        get_data_func,
+        edit_form_cls,
+        primary_key="id",
+        extra_callback=None,
+        call_on_udpate=None,
+        *args,
+        **kwargs,
     ):
         super().__init__(parent, *args, **kwargs)
         self.get_data_func = get_data_func
@@ -293,7 +300,7 @@ class Home(ABPage):
         self.budget_frame.destroy()
         self.budget_frame = tk.Frame(self)
         self.budget_frame.pack(fill="both", expand=True)
-        
+
         # add header label
         header_frame = tk.Frame(self.budget_frame)
         header_frame.pack(fill="both", expand=True)
@@ -400,24 +407,24 @@ class Transactions(ABPage):
         canvas = FigureCanvasTkAgg(pie_chart_plt, master=self.frame)
         canvas.draw()
         canvas.get_tk_widget().pack(side="bottom", fill="both", expand=True, pady=10)
-    
+
     def show_total_spent(self, data, frame):
-        # sum amount where 
+        # sum amount where
         df = get_transactions_totals_df()
         # spent is row where income = 0
         total_spent = df[df["income"] == 0]["total"].iloc[0]
         total_income = df[df["income"] == 1]["total"].iloc[0]
-        total_spent_label = tk.Label(
-            frame, text=f"Total money spent: {total_spent}"
-        )
-        total_earnt_label = tk.Label(
-            frame, text=f"Total money earnt: {total_income}"
-        )
+        total_spent_label = tk.Label(frame, text=f"Total money spent: {total_spent}")
+        total_earnt_label = tk.Label(frame, text=f"Total money earnt: {total_income}")
         total_spent_label.pack(side="bottom", pady=10)
         total_earnt_label.pack(side="bottom", pady=10)
 
 
 class Budget(ABPage):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.plot_frame = None
+
     def setup(self):
         table_frame = EditableTable(
             self.frame,
@@ -426,12 +433,19 @@ class Budget(ABPage):
             call_on_udpate=self.show_plt,
         )
         table_frame.pack(side="top", fill="both", expand=True)
+        self.plot_frame = tk.Frame(self.frame)
+        self.plot_frame.pack(side="bottom", fill="both", expand=True)
         self.show_plt()
 
     def show_plt(self):
+        self.clear_figures()
+        if self.plot_frame:
+            self.plot_frame.destroy()
+        self.plot_frame = tk.Frame(self.frame)
+        self.plot_frame.pack(side="bottom", fill="both", expand=True)
         budget_history_plt = get_budget_history_plt()
         self.figures.append(budget_history_plt)
-        canvas = FigureCanvasTkAgg(budget_history_plt, master=self.frame)
+        canvas = FigureCanvasTkAgg(budget_history_plt, master=self.plot_frame)
         canvas.draw()
         canvas.get_tk_widget().pack(side="bottom", fill="both", expand=True, pady=10)
 
