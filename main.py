@@ -52,7 +52,7 @@ def process_args():
     parser.add_argument(
         "-v",
         "--verbose",
-        default=True,
+        default=False,
         action="store_true",
         help="Print log to stdout. Default is False",
     )
