@@ -248,6 +248,7 @@ def get_budgets_df(cols=None):
         """
             SELECT b.id, b.category, b.amount, b.start_date
             FROM Budgets b JOIN Categories c ON b.category = c.category
+            ORDER BY b.start_date DESC
         """,
         [],
     )
@@ -260,6 +261,7 @@ def get_files_df(cols=None):
         """
             SELECT f.id, f.filename, f.message, f.status, f.date
             FROM Files f
+            ORDER BY f.date DESC
         """,
         [],
     )
