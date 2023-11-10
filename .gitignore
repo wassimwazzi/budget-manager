@@ -5,6 +5,7 @@
 !.env.example
 .env*
 logs/
+.vscode/
 
 ## Auto generated
 # Byte-compiled / optimized / DLL files

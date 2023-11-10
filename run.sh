@@ -27,14 +27,19 @@ then
     # don't ask user for passphrase or file location
     ssh-keygen -t rsa -b 4096 -C "$email" -f ~/.ssh/id_rsa -q -N ""
 
-    # clone repo
-    echo "Cloning repo to $HOME"
-    git clone git@github.com:wassimwazzi/budget-manager.git
-    cd budget-manager
 fi
 
-pwd
-ls
+# if repo is not cloned, clone it
+if [ ! -d "$HOME/budget-manager" ];
+then
+    cd $HOME
+    echo "Cloning repo to $HOME"
+    git clone git@github.com:wassimwazzi/budget-manager.git
+fi
+
+cd $HOME/budget-manager
+git checkout main &> /dev/null
+git pull
 
 # Check if python3 is installed and version is 3.11
 if ! command -v python3 &> /dev/null || ! python3 --version | grep -q "3.11"
@@ -46,15 +51,26 @@ then
     # add python3 to path
     echo "export PATH=/usr/local/opt/python@3.11/bin:$PATH" >> ~/.zshrc
     source ~/.zshrc
-    # create virtual environment
-    python3 -m venv venv
-    source venv/bin/activate
 
-    echo "Installing dependencies"
-    pip3 install -r requirements.txt
 fi
 
-git checkout main
-git pull
+if [ ! -d "$HOME/budget-manager/venv" ]
+then
+    echo "Creating virtual environment"
+    python3 -m venv venv
+fi
+
+source venv/bin/activate
+echo "Installing dependencies"
+pip3 install -r requirements.txt
+
+# Check if config file exists
+if [ ! -f "$HOME/budget-manager/env.prod" ]
+then
+    echo "Creating env file"
+    touch .env.prod
+    echo "DB_FILE=db.prod.sqlite3" >> .env.prod
+fi
+
 # Run program
 python3 main.py --env prod --log_level INFO
