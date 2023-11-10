@@ -46,13 +46,14 @@ if ! command -v python3 &> /dev/null || ! python3 --version | grep -q "3.11"
 then
     echo "Installing python3"
     brew install python@3.11
-    brew install python-tk@3.11
 
     # add python3 to path
     echo "export PATH=/usr/local/opt/python@3.11/bin:$PATH" >> ~/.zshrc
     source ~/.zshrc
 
 fi
+
+brew install python-tk@3.11
 
 if [ ! -d "$HOME/budget-manager/venv" ]
 then
