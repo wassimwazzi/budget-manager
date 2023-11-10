@@ -6,7 +6,7 @@ from tkinter import filedialog
 import logging
 
 
-logger = logging.getLogger().getChild(__name__)
+logger = logging.getLogger('main').getChild(__name__)
 
 
 class FieldType(Enum):

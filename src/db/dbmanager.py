@@ -14,7 +14,7 @@ def throws_db_error(func):
     return wrapper
 
 
-logger = logging.getLogger().getChild(__name__)
+logger = logging.getLogger('main').getChild(__name__)
 
 
 # class to handle database

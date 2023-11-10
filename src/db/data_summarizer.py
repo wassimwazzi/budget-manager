@@ -8,7 +8,7 @@ from src.constants import TKINTER_BACKGROUND_COLOR
 
 
 db = DBManager()
-logger = logging.getLogger().getChild(__name__)
+logger = logging.getLogger("main").getChild(__name__)
 
 
 def get_end_of_month(month: str):
@@ -146,14 +146,18 @@ def get_budget_history_df(cols=None, category=None):
     for month in dates_df["month"]:
         # convert to datetime
         month = datetime.strptime(month, "%Y-%m")
-        logger.debug("get_budget_history_df: month: %s", month)
         for category in budgets_df["category"].unique():
-            logger.debug("get_budget_history_df: category: %s", category)
             budget = budgets_df[
                 (budgets_df["category"] == category)
                 & (budgets_df["start_date"] == month)
             ]
             if not budget.empty:
+                logging.debug(
+                    "get_budget_history_df: found existing budget for %s in %s: %s",
+                    category,
+                    month,
+                    budget.iloc[0]["amount"],
+                )
                 continue
 
             logger.debug(
@@ -171,7 +175,7 @@ def get_budget_history_df(cols=None, category=None):
             ]
             if prev_budget.empty:
                 logger.debug(
-                    "get_budget_history_df: no previous budget for %s before %s",
+                    "get_budget_history_df: no previous budget for %s before %s. Setting it to 0",
                     category,
                     month,
                 )
@@ -186,7 +190,7 @@ def get_budget_history_df(cols=None, category=None):
                     "get_budget_history_df: previous budget for %s before %s: %s",
                     category,
                     month,
-                    prev_budget,
+                    prev_budget["amount"],
                 )
                 budgets_df.loc[len(budgets_df.index)] = [
                     category,
@@ -201,6 +205,17 @@ def get_budget_history_df(cols=None, category=None):
     )
     logger.debug("get_budget_history_df: Result: ")
     logger.debug(budgets_df)
+
+    # assert that number of rows is equal to number of dates * number of categories
+    if not len(budgets_df.index) == len(dates_df.index) * len(
+        budgets_df["category"].unique()
+    ):
+        logger.error(
+            "get_budget_history_df: number of rows in budgets_df (%s) does not equal number of dates (%s) * number of categories (%s)",
+            len(budgets_df.index),
+            len(dates_df.index),
+            len(budgets_df["category"].unique()),
+        )
     return budgets_df
 
 

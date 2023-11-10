@@ -28,7 +28,7 @@ def confirm_selection(func):
     return wrapper
 
 
-logger = logging.getLogger().getChild(__name__)
+logger = logging.getLogger('main').getChild(__name__)
 
 
 class ABForm(ABC):

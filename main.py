@@ -6,7 +6,7 @@ import os
 import dotenv
 
 ARGS = None
-logger = logging.getLogger()
+logger = logging.getLogger('main')
 
 
 def set_env():
