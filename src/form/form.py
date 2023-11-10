@@ -312,7 +312,7 @@ class TransactionsCsvForm(EditForm):
         super().__init__(
             self.form,
             self.form_fields,
-            "Upload CSV",
+            "Bulk Upload Transactions",
             entry_id,
             action_buttons=self.action_buttons,
         )
@@ -623,7 +623,7 @@ class EditTransactionForm(EditForm):
         super().__init__(
             self.form,
             self.form_fields,
-            "Edit Transaction",
+            "Transactions",
             transaction_id,
         )
 
@@ -722,7 +722,7 @@ class AddTransactionForm(ABForm):
                 "category", True, self.categories, self.form, display_name="Category"
             ),
         ]
-        super().__init__(self.form, self.form_fields, "Add Transaction")
+        super().__init__(self.form, self.form_fields, "Transactions")
         super().create_form()
 
     def on_success(self) -> (bool, str):
@@ -800,7 +800,7 @@ class EditBudgetForm(EditForm):
         super().__init__(
             self.form,
             self.form_fields,
-            "Edit Budget",
+            "Budgets",
             budget_id,
         )
 
@@ -899,7 +899,7 @@ class AddBudgetForm(ABForm):
                 date_format="YYYY-MM",
             ),
         ]
-        super().__init__(self.form, self.form_fields, "Add Budget")
+        super().__init__(self.form, self.form_fields, "Budgets")
         super().create_form()
 
     def on_success(self) -> (bool, str):
@@ -940,7 +940,7 @@ class EditCategoryForm(EditForm):
         super().__init__(
             self.form,
             self.form_fields,
-            "Edit Budget",
+            "Categories",
             category_name,
         )
 
