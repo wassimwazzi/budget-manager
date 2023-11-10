@@ -6,12 +6,14 @@ import os
 import dotenv
 
 ARGS = None
-logger = logging.getLogger('main')
+root_logger = logging.getLogger()
+LOGGER_NAME = "main"
+logger = logging.getLogger(LOGGER_NAME)
 
 
 def set_env():
     env = ARGS.env
-    logging.info("Running in %s environment", env)
+    logger.info("Running in %s environment", env)
     dotenv.load_dotenv(dotenv_path=f".env.{env}", override=True)
 
 
@@ -22,11 +24,6 @@ def config_logger():
         os.makedirs("logs")
     if os.path.exists(log_file):
         os.remove(log_file)
-    # file_handler = logging.handlers.TimedRotatingFileHandler(
-    #     filename=log_file, when="midnight", backupCount=30
-    # )
-    # file_handler.setLevel(logging.DEBUG)
-    # logger.addHandler(file_handler)
     logging.basicConfig(level="DEBUG", filename=log_file)
 
     if ARGS.verbose:
@@ -62,10 +59,18 @@ def process_args():
     return parser.parse_args()
 
 
+def silence_other_loggers():
+    # silence loggers from imported modules
+    for name in logging.Logger.manager.loggerDict.keys():
+        if LOGGER_NAME not in name:
+            logging.getLogger(name).setLevel(logging.FATAL)
+
+
 if __name__ == "__main__":
     ARGS = process_args()
     config_logger()
     set_env()
     from src.app import run
 
+    silence_other_loggers()
     run()
