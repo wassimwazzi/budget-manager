@@ -4,6 +4,7 @@
 # ignore all .env files except .env.example
 !.env.example
 .env*
+logs/
 
 ## Auto generated
 # Byte-compiled / optimized / DLL files

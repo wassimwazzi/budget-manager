@@ -2,7 +2,11 @@ from datetime import datetime
 from enum import Enum
 from abc import ABC, abstractmethod
 import tkinter as tk
+import logging
 from tkinter import filedialog
+
+
+logger = logging.getLogger(__name__)
 
 
 class FieldType(Enum):
@@ -120,7 +124,7 @@ class DateField(FormField):
                 return (False, "Date cannot be in the future")
             return (True, None)
         except ValueError as e:
-            print(e)
+            logger.error("Error validating date: %s", e)
             return (False, f"Invalid date format, must be {self.date_format}")
 
     def get_tk_field_template(self):
@@ -239,6 +243,7 @@ class UploadFileField(FormField):
     def clear(self):
         self.uploaded_file_path = None
         self.get_tk_field().config(text="Upload file", fg="black")
+
 
 class CheckBoxField(FormField):
     def __init__(

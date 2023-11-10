@@ -1,7 +1,9 @@
 from abc import ABC, abstractmethod
+import logging
 import openai
 from transformers import pipeline
 
+logger = logging.getLogger(__name__)
 
 API_KEY = "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"
 
@@ -52,7 +54,7 @@ class GPTClassifier(TextClassifier):
         self.max_tokens = 5
 
     def predict(self, text, labels):
-        print(text, labels)
+        logger.info("GPT Predicting category for %s", text)
         prompt = self.prompt.replace("CATEGORIES", ", ".join(labels))
         prompt = prompt.replace("DESCRIPTION", text)
         response = openai.Completion.create(
@@ -64,13 +66,14 @@ class GPTClassifier(TextClassifier):
             presence_penalty=0,
             model=self.model,
         )
-        print(response)
+        logger.debug("GPT Response: %s", response)
         predicted_label = response.choices[0].text.strip()
 
-        print(predicted_label)
+        logger.info("GPT Predicted label: %s", predicted_label)
         return predicted_label
 
     def predict_batch(self, texts, labels):
+        logger.info("GPT Predicting category for %s", texts)
         prompts = []
         for text in texts:
             prompt = self.prompt.replace("CATEGORIES", ", ".join(labels))
@@ -86,6 +89,7 @@ class GPTClassifier(TextClassifier):
             presence_penalty=0,
             model=self.model,
         )
+        logger.debug("GPT Response: %s", response)
         # The response is sometimes Category: cateogry, sometimes Category is: cateogry, so handle the cases
         predicted_labels = []
         for choice in response.choices:
@@ -94,7 +98,7 @@ class GPTClassifier(TextClassifier):
             predicted_label = predicted_label.replace("Category is:", "")
             predicted_label = predicted_label.strip()
             predicted_labels.append(predicted_label)
-        print(predicted_labels)
+        logger.info("GPT Predicted labels: %s", predicted_labels)
         return predicted_labels
 
 
@@ -106,18 +110,24 @@ class SimpleClassifier(TextClassifier):
 
     def __init__(self, model="facebook/bart-large-mnli") -> None:
         self.model = model
-        self.pipe = None # only initialize the pipeline when needed
+        self.pipe = None  # only initialize the pipeline when needed
 
     def predict(self, text, labels):
+        logger.info("Simple Predicting category for %s", text)
         if not self.pipe:
             self.pipe = pipeline("zero-shot-classification", model=self.model)
+        logger.debug("Simple Labels: %s", labels)
         result = self.pipe(text, labels)
         predicted_label = result["labels"][0]
+        logger.info("Simple Predicted label: %s", predicted_label)
         return predicted_label
 
     def predict_batch(self, texts, labels):
+        logger.info("Simple Predicting categories for %s", texts)
         if not self.pipe:
             self.pipe = pipeline("zero-shot-classification", model=self.model)
         result = self.pipe(texts, labels)
+        logger.debug("Simple Result: %s", result)
         predicted_labels = [r["labels"][0] for r in result]
+        logger.info("Simple Predicted labels: %s", predicted_labels)
         return predicted_labels

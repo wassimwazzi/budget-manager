@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import messagebox
 import threading
 import traceback
+import logging
 from abc import ABC, abstractmethod
 from sqlite3 import Error
 import pandas as pd
@@ -25,6 +26,9 @@ def confirm_selection(func):
         return
 
     return wrapper
+
+
+logger = logging.getLogger(__name__)
 
 
 class ABForm(ABC):
@@ -316,8 +320,10 @@ class TransactionsCsvForm(EditForm):
 
     def infer_category(self, row, categories):
         if row["Category"] in categories:
-            print(
-                f"Using existing category for {row['Description']}: {row['Category']}"
+            logger.debug(
+                "Using existing category for %s: %s",
+                row["Description"],
+                row["Category"],
             )
             return (row["Category"], False)
         code = row["Code"]
@@ -332,15 +338,17 @@ class TransactionsCsvForm(EditForm):
             [code],
         )
         if prev_category:
-            print(
-                f"Using previous category for {row['Description']}: {prev_category[0][0]}"
+            logger.debug(
+                "Using previous category for %s: %s",
+                row["Description"],
+                prev_category[0][0],
             )
             return (prev_category[0][0], True)
         if not row["Description"]:
-            print(f"Using default category for {row['Description']}: Other")
+            logger.debug("Using default category for %s: Other", row["Description"])
             return ("Other", False)
         result = self.text_classifier.predict(row["Description"], categories)
-        print(f"Inferred category for {row['Description']}: {result}")
+        logger.debug("Inferred category for %s: %s", row["Description"], result)
         return (result, True)
 
     def infer_categories(self, df, categories):
@@ -380,13 +388,13 @@ class TransactionsCsvForm(EditForm):
                 row["Inferred_Category"] = 1
                 descriptions_to_infer[i] = row["Description"]
         # batch process rows to infer
-        print(f"{len(descriptions_to_infer)} descriptions to infer")
+        logger.debug("%s descriptions to infer", len(descriptions_to_infer))
         descriptions = list(descriptions_to_infer.values())
         results = self.text_classifier.predict_batch(descriptions, categories)
         for i, row in df.iterrows():
             if i in descriptions_to_infer:
                 result = results.pop(0)
-                print(f"Inferred category for {row['Description']}: {result}")
+                logger.debug("Inferred category for %s: %s", row["Description"], result)
                 row["Category"] = result
         return df
 
@@ -404,6 +412,7 @@ class TransactionsCsvForm(EditForm):
         try:
             with open(filename, "r", encoding="utf-8") as f:
                 df = pd.read_csv(f)
+                logger.debug("create_data_from_csv: %s", df)
                 # validate column names
                 expected_columns = ["Date", "Description", "Amount", "Category", "Code"]
                 auto_added_columns = ["Inferred_Category", "file_id"]
@@ -412,7 +421,7 @@ class TransactionsCsvForm(EditForm):
                 ]
                 if missing_cols:
                     error_msg = f"Missing columns: {', '.join(missing_cols)}"
-                    print(error_msg)
+                    logger.error("create_data_from_csv: %s", error_msg)
                     self.update_file_status(file_record_id, "Error", error_msg)
                     return (
                         False,
@@ -429,8 +438,12 @@ class TransactionsCsvForm(EditForm):
                 today = pd.Timestamp.today()
                 erroneous_dates = df[df["Date"] > today]["Date"]
                 if not erroneous_dates.empty:
-                    print("Date cannot be in the future")
-                    print(erroneous_dates)
+                    logger.error(
+                        "create_data_from_csv: %s", "Date cannot be in the future"
+                    )
+                    logger.error(
+                        "create_data_from_csv: erroneous_dates: %s", erroneous_dates
+                    )
                     self.update_file_status(
                         file_record_id, "Error", "Date cannot be in the future"
                     )
@@ -464,7 +477,7 @@ class TransactionsCsvForm(EditForm):
                 ]
                 if missing_categories:
                     error_msg = f"Missing categories: {', '.join(missing_categories)}"
-                    print(error_msg)
+                    logger.error("create_data_from_csv: %s", error_msg)
                     self.update_file_status(file_record_id, "Error", error_msg)
                     return (
                         False,
@@ -499,14 +512,14 @@ class TransactionsCsvForm(EditForm):
                     data,
                 )
                 self.clear_form()
-                print("Successfully added transactions")
+                logger.info("create_data_from_csv: Successfully added transactions")
                 self.update_file_status(
                     file_record_id, "Success", "Successfully processed"
                 )
                 return (True, "Successfully added transactions")
         except Exception as e:
-            print(e)
-            print(traceback.format_exc())
+            logger.error("create_data_from_csv: %s", e)
+            logger.error(traceback.format_exc())
             self.update_file_status(file_record_id, "Error", str(e))
             return (False, str(e))
 
@@ -637,7 +650,7 @@ class EditTransactionForm(EditForm):
 
             self.db.update(statement, [])
         except Error as e:
-            print(e)
+            logger.error("Error updating transaction: %s", e)
             return (False, str(e))
         super().notify_update()
         transaction_descriptor = data["code"] or data["description"]
@@ -681,14 +694,15 @@ class EditTransactionForm(EditForm):
                 vals,
             )
         except Error as e:
-            print(e)
+            logger.error("Error inserting transaction: %s", e)
             self.form_message_label.config(text=str(e), fg=ABForm.ERROR_COLOR)
             return (False, str(e))
         # self.clear_form()
         super().notify_update()
         transaction_descriptor = data["code"] or data["description"]
         self.form_message_label.config(
-            text="Successfully added transasction " + transaction_descriptor, fg=ABForm.SUCCESS_COLOR
+            text="Successfully added transasction " + transaction_descriptor,
+            fg=ABForm.SUCCESS_COLOR,
         )
         return (True, "Successfully added transaction " + transaction_descriptor)
 
@@ -735,7 +749,7 @@ class AddTransactionForm(ABForm):
                 vals,
             )
         except Error as e:
-            print(e)
+            logger.error("Error inserting transaction: %s", e)
             return (False, str(e))
         transaction_descriptor = data["code"] or data["description"]
         return (True, "Successfully added transaction " + transaction_descriptor)
@@ -813,7 +827,7 @@ class EditBudgetForm(EditForm):
 
             self.db.update(statement, [])
         except Error as e:
-            print(e)
+            logger.error("Error updating budget: %s", e)
             return (False, str(e))
         self.notify_update()
         budget_descriptor = data["category"] + " " + data["start_date"]
@@ -853,14 +867,15 @@ class EditBudgetForm(EditForm):
                 [data["category"], data["amount"], data["start_date"]],
             )
         except Error as e:
-            print(e)
+            logger.error("Error inserting budget: %s", e)
             self.form_message_label.config(text=str(e), fg=ABForm.ERROR_COLOR)
             return (False, str(e))
         # self.clear_form()
         super().notify_update()
         budget_descriptor = data["category"] + " " + data["start_date"]
         self.form_message_label.config(
-            text="Successfully added budget " + budget_descriptor, fg=ABForm.SUCCESS_COLOR
+            text="Successfully added budget " + budget_descriptor,
+            fg=ABForm.SUCCESS_COLOR,
         )
         return (True, "Successfully added budget " + budget_descriptor)
 
@@ -907,7 +922,7 @@ class AddBudgetForm(ABForm):
                 [data["category"], data["amount"], data["start_date"]],
             )
         except Error as e:
-            print(e)
+            logger.error("Error updating budget: %s", e)
             return (False, str(e))
         budget_descriptor = data["category"] + " " + data["start_date"]
         return (True, "Successfully added budget " + budget_descriptor)
@@ -952,7 +967,7 @@ class EditCategoryForm(EditForm):
 
             self.db.update(statement, [])
         except Error as e:
-            print(e)
+            logger.error("Error updating category: %s", e)
             return (False, str(e))
         super().notify_update()
         category_descriptor = data["category"]
@@ -992,13 +1007,14 @@ class EditCategoryForm(EditForm):
                 [data["category"], data["description"], data["income"]],
             )
         except Error as e:
-            print(e)
+            logger.error("Error inserting category: %s", e)
             self.form_message_label.config(text=str(e), fg=ABForm.ERROR_COLOR)
             return (False, str(e))
         # self.clear_form()
         super().notify_update()
         category_descriptor = data["category"]
         self.form_message_label.config(
-            text="Successfully added category " + category_descriptor, fg=ABForm.SUCCESS_COLOR
+            text="Successfully added category " + category_descriptor,
+            fg=ABForm.SUCCESS_COLOR,
         )
         return (True, "Successfully added category " + category_descriptor)

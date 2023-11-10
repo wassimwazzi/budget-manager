@@ -1,5 +1,6 @@
 import sqlite3
 import os
+import logging
 from sqlite3 import Error
 
 
@@ -8,9 +9,12 @@ def throws_db_error(func):
         try:
             return func(*args, **kwargs)
         except Error as e:
-            print(e)
+            logger.error(e)
 
     return wrapper
+
+
+logger = logging.getLogger(__name__)
 
 
 # class to handle database
@@ -23,14 +27,14 @@ class DBManager:
             raise Exception("Database file not specified")
 
         if not os.path.exists(self.db):
-            print("Database does not exist. Creating...")
+            logger.info("Database %s does not exist. Creating...", self.db)
             self.setup()
 
     def _connect(self):
         try:
             return sqlite3.connect(self.db)
         except Error as e:
-            print(e)
+            logger.error("Error connecting to database: %s", e)
             return None
 
     def setup(self):

@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 import calendar
+import logging
 import matplotlib.pyplot as plt
 import pandas as pd
 from src.db.dbmanager import DBManager
@@ -7,6 +8,7 @@ from src.constants import TKINTER_BACKGROUND_COLOR
 
 
 db = DBManager()
+logger = logging.getLogger(__name__)
 
 
 def get_end_of_month(month: str):
@@ -133,7 +135,7 @@ def get_budget_history_df(cols=None, category=None):
         """,
         [],
     )
-
+    logger.debug("get_budget_history_df: dates: %s", dates)
     dates_df = pd.DataFrame(dates, columns=["month"])
     budgets_df = pd.DataFrame(budgets, columns=["category", "amount", "start_date"])
     # convert to datetime
@@ -144,9 +146,9 @@ def get_budget_history_df(cols=None, category=None):
     for month in dates_df["month"]:
         # convert to datetime
         month = datetime.strptime(month, "%Y-%m")
-        print(month)
+        logger.debug("get_budget_history_df: month: %s", month)
         for category in budgets_df["category"].unique():
-            print(category)
+            logger.debug("get_budget_history_df: category: %s", category)
             budget = budgets_df[
                 (budgets_df["category"] == category)
                 & (budgets_df["start_date"] == month)
@@ -154,10 +156,11 @@ def get_budget_history_df(cols=None, category=None):
             if not budget.empty:
                 continue
 
-            print(f"no budget for  {category} in {month}")
+            logger.debug(
+                "get_budget_history_df: no budget for %s in %s", category, month
+            )
             # create a new row for this category and month
             # get the amount from a previous budget. If it exists, use that. Otherwise, use 0
-            # print start_dates before month
             prev_budget = budgets_df[
                 (budgets_df["category"] == category)
                 & (budgets_df["start_date"] < month)
@@ -167,7 +170,11 @@ def get_budget_history_df(cols=None, category=None):
                 prev_budget["start_date"] == prev_budget["start_date"].max()
             ]
             if prev_budget.empty:
-                print(f"no previous budget for {category} before {month}")
+                logger.debug(
+                    "get_budget_history_df: no previous budget for %s before %s",
+                    category,
+                    month,
+                )
                 budgets_df.loc[len(budgets_df.index)] = [
                     category,
                     0,  # amount
@@ -175,7 +182,12 @@ def get_budget_history_df(cols=None, category=None):
                 ]
             else:
                 prev_budget = prev_budget.iloc[0]
-                print(f"previous budget for {category} before {month}: {prev_budget['amount']}")
+                logger.debug(
+                    "get_budget_history_df: previous budget for %s before %s: %s",
+                    category,
+                    month,
+                    prev_budget,
+                )
                 budgets_df.loc[len(budgets_df.index)] = [
                     category,
                     prev_budget["amount"],
@@ -187,8 +199,8 @@ def get_budget_history_df(cols=None, category=None):
     budgets_df["start_date"] = budgets_df["start_date"].apply(
         lambda x: x.strftime("%Y-%m")
     )
-    print("Result: ")
-    print(budgets_df)
+    logger.debug("get_budget_history_df: Result: ")
+    logger.debug(budgets_df)
     return budgets_df
 
 
