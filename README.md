@@ -8,6 +8,7 @@ App to track spending and budget
 `cd ~/Downloads`<br>
 `chomod +x run.sh`<br>
 `./run.sh` <br>
+**NOTE:** must be logged in as an administrator account
 
 ## Setup for dev
 - Install python 3.11 or higher. Important for mac to make sure that you are using compatible version of tkinter to avoid this error
