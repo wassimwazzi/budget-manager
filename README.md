@@ -1,7 +1,15 @@
 # budget-manager
 App to track spending and budget
 
-## Setup
+## Easy setup
+1. Download run.sh file
+2. open terminal (search in search bar)
+3. Run the following commands:
+`cd ~/Downloads`
+`chomod +x run.sh`
+`./run.sh` 
+
+## Setup for dev
 - Install python 3.11 or higher. Important for mac to make sure that you are using compatible version of tkinter to avoid this error
 `DEPRECATION WARNING: The system version of Tk is deprecated and may be removed in a future release. Please don't rely on it. Set TK_SILENCE_DEPRECATION=1 to suppress this warning.`
 - Setup a virtual environment: `python3.10 -m venv venv`
