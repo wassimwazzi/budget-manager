@@ -53,5 +53,7 @@ then
     pip3 install -r requirements.txt
 fi
 
+git checkout main
+git pull
 # Run program
 python3 main.py --env prod --log_level INFO
