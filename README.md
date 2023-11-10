@@ -6,7 +6,7 @@ App to track spending and budget
 2. open terminal (search in search bar)
 3. Run the following commands:<br>
 `cd ~/Downloads`<br>
-`chomod +x run.sh`<br>
+`chmod +x run.sh`<br>
 `./run.sh` <br>
 **NOTE:** must be logged in as an administrator account
 
