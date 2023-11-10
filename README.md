@@ -5,9 +5,9 @@ App to track spending and budget
 1. Download run.sh file
 2. open terminal (search in search bar)
 3. Run the following commands:
-`cd ~/Downloads`
-`chomod +x run.sh`
-`./run.sh` 
+`cd ~/Downloads`<br>
+`chomod +x run.sh`<br>
+`./run.sh` <br>
 
 ## Setup for dev
 - Install python 3.11 or higher. Important for mac to make sure that you are using compatible version of tkinter to avoid this error
