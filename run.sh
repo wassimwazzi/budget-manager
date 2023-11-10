@@ -36,12 +36,15 @@ fi
 pwd
 ls
 
-# Check if python3 is installed
-if ! command -v python3 &> /dev/null
+# Check if python3 is installed and version is 3.11
+if ! command -v python3 &> /dev/null || ! python3 --version | grep -q "3.11"
 then
     echo "Installing python3"
     brew install python@3.11
+    brew install python-tk@3.11
 
+    # add python3 to path
+    echo "export PATH=/usr/local/opt/python@3.11/bin:$PATH" >> ~/.zshrc
     # create virtual environment
     python3 -m venv venv
     source venv/bin/activate

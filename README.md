@@ -4,7 +4,11 @@ App to track spending and budget
 ## Easy setup
 1. Download run.sh file
 2. open terminal (search in search bar)
+<<<<<<< Updated upstream
 3. Run the following commands:<br>
+=======
+3. Run the following commands: <br>
+>>>>>>> Stashed changes
 `cd ~/Downloads`<br>
 `chomod +x run.sh`<br>
 `./run.sh` <br>
@@ -34,8 +38,8 @@ App to track spending and budget
 Use the data entry page to manually enter transactions, upload a csv file, or enter your budgets.
 
 #### CSV file
-CSV upload is used to buld upload transactions. Required columns are "Date", "Description"*, "Code"*, "Amount", "Category" <br>
-**Note**: * means column is optional <br>
+CSV upload is used to buld upload transactions. Required columns are "Date", "Description"\*, "Code"\*, "Amount", "Category" <br>
+**Note**: * means value can be empty for that column <br>
 Try to keep date formats Day-Month-Year, otherwise the date might be wrongly inferred. You can also use the full date (e.g January 1 2023).
 
 ### Monthly summary
