@@ -45,6 +45,7 @@ then
 
     # add python3 to path
     echo "export PATH=/usr/local/opt/python@3.11/bin:$PATH" >> ~/.zshrc
+    source ~/.zshrc
     # create virtual environment
     python3 -m venv venv
     source venv/bin/activate
