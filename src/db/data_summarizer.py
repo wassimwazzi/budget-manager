@@ -68,6 +68,15 @@ def get_transactions_totals_df():
         [],
     )
     df = pd.DataFrame(totals, columns=["total", "income"])
+    # make sure there is a row for income = 0 and income = 1
+    if len(df) == 0:
+        df.loc[len(df.index)] = [0, 0]
+        df.loc[len(df.index)] = [0, 1]
+    elif len(df) == 1:
+        if df.iloc[0]["income"] == 0:
+            df.loc[len(df.index)] = [0, 1]
+        else:
+            df.loc[len(df.index)] = [0, 0]  # income = 0
     return df
 
 

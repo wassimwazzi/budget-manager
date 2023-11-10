@@ -412,7 +412,7 @@ class TransactionsCsvForm(EditForm):
         try:
             with open(filename, "r", encoding="utf-8") as f:
                 df = pd.read_csv(f)
-                logger.debug("create_data_from_csv: %s", df)
+                logger.debug("create_data_from_csv: got csv with data: %s", df)
                 # validate column names
                 expected_columns = ["Date", "Description", "Amount", "Category", "Code"]
                 auto_added_columns = ["Inferred_Category", "file_id"]
@@ -486,12 +486,6 @@ class TransactionsCsvForm(EditForm):
 
                 data = []
                 cols = expected_columns + auto_added_columns
-                labels = [
-                    category[0] + ". " + category[1]
-                    for category in self.db.select(
-                        "SELECT category, description FROM categories", []
-                    )
-                ]
                 for _, row in df.iterrows():
                     category, was_inferred = self.infer_category(
                         row, existing_categories

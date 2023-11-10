@@ -352,7 +352,7 @@ class Home(ABPage):
 
         # Add totals row
         # sum all columns except the category column
-        totals = df.sum(axis=0).apply(
+        totals = df.sum(axis=0, numeric_only=True).apply(
             lambda x: round(x, 2) if isinstance(x, (float, int)) else x
         )
 
