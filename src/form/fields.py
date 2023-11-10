@@ -2,11 +2,11 @@ from datetime import datetime
 from enum import Enum
 from abc import ABC, abstractmethod
 import tkinter as tk
-import logging
 from tkinter import filedialog
+import logging
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger().getChild(__name__)
 
 
 class FieldType(Enum):

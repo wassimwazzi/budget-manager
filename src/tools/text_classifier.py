@@ -3,7 +3,7 @@ import logging
 import openai
 from transformers import pipeline
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger().getChild(__name__)
 
 API_KEY = "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"
 

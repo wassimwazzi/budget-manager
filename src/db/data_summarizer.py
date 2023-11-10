@@ -8,7 +8,7 @@ from src.constants import TKINTER_BACKGROUND_COLOR
 
 
 db = DBManager()
-logger = logging.getLogger(__name__)
+logger = logging.getLogger().getChild(__name__)
 
 
 def get_end_of_month(month: str):
