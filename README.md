@@ -4,7 +4,7 @@ App to track spending and budget
 ## Easy setup
 1. Download run.sh file
 2. open terminal (search in search bar)
-3. Run the following commands:
+3. Run the following commands:<br>
 `cd ~/Downloads`<br>
 `chomod +x run.sh`<br>
 `./run.sh` <br>
