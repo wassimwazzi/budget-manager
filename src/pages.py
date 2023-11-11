@@ -351,12 +351,15 @@ class Home(ABPage):
             tree.tag_configure(row["Category"], background=color)
 
         # Add totals row
+        # drop ratio column
         # sum all columns except the category column
         totals = df.sum(axis=0, numeric_only=True).apply(
             lambda x: round(x, 2) if isinstance(x, (float, int)) else x
         )
 
         totals["Category"] = "Total"
+        # select only the columns that are in the tree
+        totals = totals[cols]
         tree.insert("", "end", values=list(totals), tags="totals_row")
         tree.tag_configure("totals_row", background="darkgrey")
 
