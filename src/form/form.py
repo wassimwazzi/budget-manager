@@ -28,7 +28,7 @@ def confirm_selection(func):
     return wrapper
 
 
-logger = logging.getLogger('main').getChild(__name__)
+logger = logging.getLogger("main").getChild(__name__)
 
 
 class ABForm(ABC):
@@ -319,6 +319,12 @@ class TransactionsCsvForm(EditForm):
         super().create_form()
 
     def infer_category(self, row, categories):
+        if not row["Description"] and not row["Code"]:
+            logger.debug(
+                "Using default category Other as no description or code. %s", row
+            )
+            return ("Other", True)
+
         if row["Category"] in categories:
             logger.debug(
                 "Using existing category for %s: %s",
@@ -327,25 +333,30 @@ class TransactionsCsvForm(EditForm):
             )
             return (row["Category"], False)
         code = row["Code"]
-        # if previous transaction has same code, use that category
-        prev_category = self.db.select(
-            """
-                SELECT category FROM transactions
-                WHERE code = ? AND category != 'Other'
-                ORDER BY date DESC
-                LIMIT 1
-            """,
-            [code],
-        )
-        if prev_category:
-            logger.debug(
-                "Using previous category for %s: %s",
-                row["Description"],
-                prev_category[0][0],
+        if code:
+            # if previous transaction has same code, use that category
+            prev_category = self.db.select(
+                """
+                    SELECT category FROM transactions
+                    WHERE code = ? AND category != 'Other'
+                    ORDER BY date DESC
+                    LIMIT 1
+                """,
+                [code],
             )
-            return (prev_category[0][0], True)
+            if prev_category:
+                logger.debug(
+                    """Found previoius transaction with same code %s.
+                    Using previous category: %s""",
+                    row["Code"],
+                    prev_category[0][0],
+                )
+                return (prev_category[0][0], True)
+
         if not row["Description"]:
-            logger.debug("Using default category for %s: Other", row["Description"])
+            logger.debug(
+                "Using default category Other as no description was given. %s", row
+            )
             return ("Other", False)
         result = self.text_classifier.predict(row["Description"], categories)
         logger.debug("Inferred category for %s: %s", row["Description"], result)
@@ -412,7 +423,7 @@ class TransactionsCsvForm(EditForm):
         try:
             with open(filename, "r", encoding="utf-8") as f:
                 df = pd.read_csv(f)
-                logger.debug("create_data_from_csv: got csv with data: %s", df)
+                logger.debug("create_data_from_csv: got csv with data\n: %s", df)
                 # validate column names
                 expected_columns = ["Date", "Description", "Amount", "Category", "Code"]
                 auto_added_columns = ["Inferred_Category", "file_id"]
@@ -456,9 +467,12 @@ class TransactionsCsvForm(EditForm):
                 df["Code"] = df["Code"].apply(
                     lambda x: str(x) if not pd.isnull(x) else ""
                 )
-                # create category if not exists
                 df["Category"] = df["Category"].apply(
-                    lambda x: str(x).title() if not pd.isnull(x) else x
+                    lambda x: str(x).title() if not pd.isnull(x) else ""
+                )
+                # convert nan descriptions to empty string
+                df["Description"] = df["Description"].apply(
+                    lambda x: str(x) if not pd.isnull(x) else ""
                 )
                 categories = set(df["Category"])
 
@@ -473,7 +487,7 @@ class TransactionsCsvForm(EditForm):
                 missing_categories = [
                     category
                     for category in categories
-                    if category not in existing_categories and not pd.isnull(category)
+                    if category and category not in existing_categories
                 ]
                 if missing_categories:
                     error_msg = f"Missing categories: {', '.join(missing_categories)}"
