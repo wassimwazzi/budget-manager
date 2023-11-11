@@ -18,6 +18,7 @@ from src.form.fields import (
 from src.db.dbmanager import DBManager
 from src.constants import *
 from src.tools.text_classifier import GPTClassifier, SimpleClassifier
+from src.tools.defaults import DefaultFrame, DefaultLabel
 
 
 def confirm_selection(func):
@@ -43,17 +44,17 @@ class ABForm(ABC):
 
     def __init__(
         self,
-        form: tk.Frame,
+        form: DefaultFrame,
         form_fields: list[FormField],
         form_title: str,
         action_buttons: list[tk.Button] = None,
     ):
         self.form_fields = form_fields
         self.error_labels = [
-            tk.Label(form, text="", font=(TEXT_FONT, 10), fg=ABForm.ERROR_COLOR)
+            DefaultLabel(form, text="", font=(TEXT_FONT, 10), fg=ABForm.ERROR_COLOR)
             for _ in form_fields
         ]
-        self.form_message_label = tk.Label(
+        self.form_message_label = DefaultLabel(
             form, text="", font=(TEXT_FONT, TEXT_FONT_SIZE_MEDIUM)
         )
         self.form = form
@@ -82,7 +83,7 @@ class ABForm(ABC):
         )
 
     def set_form_title(self):
-        tk.Label(
+        DefaultLabel(
             self.form,
             text=self.form_title,
             font=(TEXT_FONT, TEXT_FONT_SIZE_LARGE),
@@ -165,7 +166,7 @@ class ABForm(ABC):
         :param form_field: the form field to layout
         """
         field_name = form_field.get_display_name()
-        tk_label = tk.Label(
+        tk_label = DefaultLabel(
             self.form,
             text=field_name,
             font=(TEXT_FONT, TEXT_FONT_SIZE_SMALL),
@@ -184,7 +185,7 @@ class ABForm(ABC):
         # i is the row number of the form field. Starts at 1
         field_name = form_field.get_display_name()
         row_position = (i - 1) // elements_per_row  # 0 indexed
-        tk_label = tk.Label(
+        tk_label = DefaultLabel(
             self.form,
             text=field_name,
             font=(TEXT_FONT, TEXT_FONT_SIZE_SMALL),
@@ -219,7 +220,7 @@ class ABForm(ABC):
 class EditForm(ABForm):
     def __init__(
         self,
-        form: tk.Frame,
+        form: DefaultFrame,
         form_fields: list[FormField],
         form_title: str,
         entry_id: int | str,
@@ -288,7 +289,7 @@ class TransactionsCsvForm(EditForm):
 
     def __init__(self, master: tk.Tk, entry_id: int):
         self.master = master
-        self.form = tk.Frame(self.master)
+        self.form = DefaultFrame(self.master)
         self.form.pack(pady=20)
         self.form_fields = [
             UploadFileField(
@@ -585,7 +586,7 @@ class TransactionsCsvForm(EditForm):
 class GenerateMonthlySummaryForm(ABForm):
     def __init__(self, master: tk.Tk):
         self.master = master
-        self.form = tk.Frame(self.master)
+        self.form = DefaultFrame(self.master)
         self.form.pack(pady=20)
         self.form_fields = [
             DateField(
@@ -614,7 +615,7 @@ class GenerateMonthlySummaryForm(ABForm):
 class EditTransactionForm(EditForm):
     def __init__(self, master: tk.Tk, transaction_id: int):
         self.master = master
-        self.form = tk.Frame(self.master)
+        self.form = DefaultFrame(self.master)
         self.form.pack(pady=20)
         self.db = DBManager()
         self.categories = [
@@ -717,7 +718,7 @@ class EditTransactionForm(EditForm):
 class AddTransactionForm(ABForm):
     def __init__(self, master: tk.Tk):
         self.master = master
-        self.form = tk.Frame(self.master)
+        self.form = DefaultFrame(self.master)
         self.form.pack(pady=20)
         self.db = DBManager()
         self.categories = [
@@ -767,7 +768,7 @@ class AddTransactionForm(ABForm):
         # Entry under label, error label under entry
         field_name = form_field.get_display_name()
         row_position = (i - 1) // 3  # 0 indexed
-        tk_label = tk.Label(
+        tk_label = DefaultLabel(
             self.form,
             text=field_name,
             font=(TEXT_FONT, TEXT_FONT_SIZE_SMALL),
@@ -792,7 +793,7 @@ class AddTransactionForm(ABForm):
 class EditBudgetForm(EditForm):
     def __init__(self, master: tk.Tk, budget_id: int):
         self.master = master
-        self.form = tk.Frame(self.master)
+        self.form = DefaultFrame(self.master)
         self.form.pack(pady=20)
         self.db = DBManager()
         self.categories = [
@@ -895,7 +896,7 @@ class EditBudgetForm(EditForm):
 class AddBudgetForm(ABForm):
     def __init__(self, master: tk.Tk):
         self.master = master
-        self.form = tk.Frame(self.master)
+        self.form = DefaultFrame(self.master)
         self.form.pack(pady=20)
         self.db = DBManager()
         self.categories = [
@@ -946,7 +947,7 @@ class AddBudgetForm(ABForm):
 class EditCategoryForm(EditForm):
     def __init__(self, master: tk.Tk, category_name: str):
         self.master = master
-        self.form = tk.Frame(self.master)
+        self.form = DefaultFrame(self.master)
         self.form.pack(pady=20)
         self.db = DBManager()
         self.form_fields = [

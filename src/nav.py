@@ -1,15 +1,16 @@
 import tkinter as tk
 from src.constants import *
+from src.tools.defaults import DefaultFrame, DefaultLabel
 
 
-class NavFrame(tk.Frame):
+class NavFrame(DefaultFrame):
     """
     Frame acts as a navbar
     """
 
     def __init__(
         self,
-        parent: tk.Frame,
+        parent: DefaultFrame,
         controller: tk.Tk,
         links: list[callable],
         active_link: callable,
@@ -22,9 +23,17 @@ class NavFrame(tk.Frame):
 
     def render(self):
         for i, frame in enumerate(self.links):
-            bg = NAVBAR_ACTIVE_BACKGROUND_COLOR if frame == self.active_link else NAVBAR_BACKGROUND_COLOR
-            fg = NAVBAR_ACTIVE_TEXT_COLOR if frame == self.active_link else NAVBAR_TEXT_COLOR
-            link_label = tk.Label(
+            bg = (
+                NAVBAR_ACTIVE_BACKGROUND_COLOR
+                if frame == self.active_link
+                else NAVBAR_BACKGROUND_COLOR
+            )
+            fg = (
+                NAVBAR_ACTIVE_TEXT_COLOR
+                if frame == self.active_link
+                else NAVBAR_TEXT_COLOR
+            )
+            link_label = DefaultLabel(
                 self,
                 text=frame.__name__,
                 fg=fg,  # Text color

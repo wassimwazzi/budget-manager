@@ -7,6 +7,7 @@ from screeninfo import get_monitors
 from src.pages import Home, Transactions, Budget, Files, Categories
 from src.nav import NavFrame
 from src.constants import TKINTER_BACKGROUND_COLOR
+from src.tools.defaults import DefaultFrame
 
 PAGES = [
     Home,
@@ -17,7 +18,7 @@ PAGES = [
 ]  # first page is the default page
 
 
-class VerticalScrolledFrame(ttk.Frame):
+class VerticalScrolledFrame(DefaultFrame):
     """A pure Tkinter scrollable frame that actually works!
     * Use the 'interior' attribute to place widgets inside the scrollable frame.
     * Construct and pack/place/grid normally.
@@ -25,7 +26,7 @@ class VerticalScrolledFrame(ttk.Frame):
     """
 
     def __init__(self, parent, *args, **kw):
-        ttk.Frame.__init__(self, parent, *args, **kw)
+        DefaultFrame.__init__(self, parent, *args, **kw)
 
         # Create a canvas object and a vertical scrollbar for scrolling it.
         vscrollbar = ttk.Scrollbar(self, orient=VERTICAL)
@@ -41,7 +42,9 @@ class VerticalScrolledFrame(ttk.Frame):
         canvas.yview_moveto(0)
 
         # Create a frame inside the canvas which will be scrolled with it.
-        self.interior = interior = ttk.Frame(canvas)
+        self.interior = interior = DefaultFrame(
+            canvas, background=TKINTER_BACKGROUND_COLOR
+        )
         interior_id = canvas.create_window(0, 0, window=interior, anchor=NW)
 
         # Track changes to the canvas and frame width and sync them,
@@ -67,6 +70,7 @@ class VerticalScrolledFrame(ttk.Frame):
 class BudgetApp(tk.Tk):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.config(bg=TKINTER_BACKGROUND_COLOR)
         self.geometry(f"{self.get_display_size()[0]}x{self.get_display_size()[1]}")
         # Add navbar
         nav_frame = NavFrame(self, self, PAGES, Home)
@@ -103,7 +107,6 @@ class BudgetApp(tk.Tk):
 def run():
     app = BudgetApp()
     app.title("Budget App")
-    app.configure(bg=TKINTER_BACKGROUND_COLOR)
 
     def on_closing():
         if messagebox.askokcancel("Quit", "Do you want to quit?"):

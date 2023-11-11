@@ -5,6 +5,7 @@ import tkinter as tk
 from tkinter import filedialog
 import logging
 from src.constants import *
+from src.tools.defaults import DefaultFrame
 
 
 logger = logging.getLogger("main").getChild(__name__)
@@ -25,7 +26,7 @@ class FormField(ABC):
         name: str,
         field_type: FieldType,
         required: bool,
-        form: tk.Frame,
+        form: DefaultFrame,
         display_name: str = None,
     ):
         self.name = name  # name of the field in the database
@@ -50,7 +51,7 @@ class FormField(ABC):
     def is_required(self) -> bool:
         return self.required
 
-    def get_form(self) -> tk.Frame:
+    def get_form(self) -> DefaultFrame:
         return self.form
 
     def get_value(self):
@@ -98,7 +99,7 @@ class DateField(FormField):
         self,
         name: str,
         required: bool,
-        form: tk.Frame,
+        form: DefaultFrame,
         date_format: str = "YYYY-MM-DD",
         display_name: str = None,
     ):
@@ -134,7 +135,7 @@ class DateField(FormField):
 
 class TextField(FormField):
     def __init__(
-        self, name: str, required: bool, form: tk.Frame, display_name: str = None
+        self, name: str, required: bool, form: DefaultFrame, display_name: str = None
     ):
         super().__init__(name, FieldType.TEXT, required, form, display_name)
 
@@ -147,7 +148,7 @@ class TextField(FormField):
 
 class NumberField(FormField):
     def __init__(
-        self, name: str, required: bool, form: tk.Frame, display_name: str = None
+        self, name: str, required: bool, form: DefaultFrame, display_name: str = None
     ):
         super().__init__(name, FieldType.NUMBER, required, form, display_name)
 
@@ -167,7 +168,7 @@ class DropdownField(FormField):
         name: str,
         required: bool,
         options: list[str],
-        form: tk.Frame,
+        form: DefaultFrame,
         display_name: str = None,
     ):
         super().__init__(name, FieldType.DROPDOWN, required, form, display_name)
@@ -205,7 +206,7 @@ class UploadFileField(FormField):
         self,
         name: str,
         required: bool,
-        form: tk.Frame,
+        form: DefaultFrame,
         file_types: list[(str, str)] = None,
         display_name: str = None,
     ):
@@ -251,7 +252,7 @@ class CheckBoxField(FormField):
         self,
         name: str,
         required: bool,
-        form: tk.Frame,
+        form: DefaultFrame,
         display_name: str = None,
     ):
         super().__init__(name, FieldType.CHECKBOX, required, form, display_name)

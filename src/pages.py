@@ -28,9 +28,10 @@ from src.db.data_summarizer import (
     get_budget_history_plt,
 )
 from src.constants import TEXT_FONT
+from src.tools.defaults import DefaultFrame, DefaultLabel
 
 
-class EditableTable(tk.Frame):
+class EditableTable(DefaultFrame):
     def __init__(
         self,
         parent,
@@ -49,10 +50,10 @@ class EditableTable(tk.Frame):
         self.display_columns = self.columns.copy()
         if primary_key == "id":
             self.display_columns.remove("id")
-        self.table_frame = tk.Frame(self)
+        self.table_frame = DefaultFrame(self)
         self.table_frame.pack(side="bottom", fill="both", expand=True)
         self.edit_form_cls = edit_form_cls
-        self.edit_form_frame = tk.Frame(self)
+        self.edit_form_frame = DefaultFrame(self)
         self.edit_form_frame.pack(side="top", fill="both", expand=True)
         self.edit_form = edit_form_cls(self.edit_form_frame, None)
         self.edit_form.register_listener(self)
@@ -92,7 +93,7 @@ class EditableTable(tk.Frame):
         # Create a Treeview widget to display the DataFrame
         if self.table_frame:
             self.table_frame.destroy()
-        self.table_frame = tk.Frame(self)
+        self.table_frame = DefaultFrame(self)
         self.table_frame.pack(fill="both", expand=True)
         cols = self.display_columns
         tree = ttk.Treeview(
@@ -122,7 +123,7 @@ class EditableTable(tk.Frame):
     def show_filters(self):
         # create a bar with filters and refresh button
         self.filters = []
-        filter_frame = tk.Frame(self)
+        filter_frame = DefaultFrame(self)
         filter_frame.pack(pady=10, side="top")
         self.filter_frame = filter_frame
         # create a button to refresh the transactions
@@ -131,7 +132,7 @@ class EditableTable(tk.Frame):
         refresh_button.grid(row=1, column=0)
         self.filters.append((tk.Button, refresh_button))
         # dropdown to allow to sort by each column
-        sort_label = tk.Label(filter_frame, text="Sort by:")
+        sort_label = DefaultLabel(filter_frame, text="Sort by:")
         sort_label.grid(row=0, column=1)
         sort_options = self.display_columns
         sort_var = tk.StringVar()
@@ -148,7 +149,7 @@ class EditableTable(tk.Frame):
         sort_asc_checkbox.grid(row=1, column=2)
         self.filters.append((tk.Checkbutton, sort_asc_var))
         # dropdown for search column
-        search_menu_label = tk.Label(filter_frame, text="Search column:")
+        search_menu_label = DefaultLabel(filter_frame, text="Search column:")
         search_menu_label.grid(row=0, column=3)
         search_menu_var = tk.StringVar()
         search_menu_var.set(sort_options[0])
@@ -156,7 +157,7 @@ class EditableTable(tk.Frame):
         search_menu.grid(row=1, column=3)
         self.filters.append((tk.OptionMenu, search_menu_var))
         # search for a string in a column
-        search_label = tk.Label(filter_frame, text="Search:")
+        search_label = DefaultLabel(filter_frame, text="Search:")
         search_label.grid(row=0, column=4)
         search_var = tk.StringVar()
         search_entry = tk.Entry(filter_frame, textvariable=search_var)
@@ -180,12 +181,12 @@ class EditableTable(tk.Frame):
     def show_applied_filters(self):
         # show applied search filters
         if self.applied_search_filters:
-            applied_filters_label = tk.Label(
+            applied_filters_label = DefaultLabel(
                 self.filter_frame, text="Applied filters:", font=(TEXT_FONT, 10)
             )
             applied_filters_label.grid(row=0, column=len(self.filters) + 1)
             filters = ", ".join(self.applied_search_filters)
-            applied_filters = tk.Label(self.filter_frame, text=filters)
+            applied_filters = DefaultLabel(self.filter_frame, text=filters)
             applied_filters.grid(row=1, column=len(self.filters) + 1)
         else:
             # remove applied filters label
@@ -248,12 +249,12 @@ class EditableTable(tk.Frame):
         self.show_table()
 
 
-class ABPage(tk.Frame, ABC):
+class ABPage(DefaultFrame, ABC):
     def __init__(self, parent):
         super().__init__(parent)
         self.parent = parent
         # Create a frame for the page that will be used, and can be destroyed and recreated
-        self.frame = tk.Frame(self)
+        self.frame = DefaultFrame(self)
         self.frame.pack(fill="both", expand=True)
         self.was_setup = False
         self.figures = []
@@ -289,7 +290,7 @@ class ABPage(tk.Frame, ABC):
 class Home(ABPage):
     def __init__(self, parent):
         super().__init__(parent)
-        self.budget_frame = tk.Frame(self.frame)
+        self.budget_frame = DefaultFrame(self.frame)
         self.budget_frame.pack(fill="both", expand=True)
 
     def notify(self, month):
@@ -299,21 +300,21 @@ class Home(ABPage):
     def budget_summary(self, month):
         df = get_budget_summary_df(month)
         self.budget_frame.destroy()
-        self.budget_frame = tk.Frame(self)
+        self.budget_frame = DefaultFrame(self)
         self.budget_frame.pack(fill="both", expand=True)
 
         # add header label
-        header_frame = tk.Frame(self.budget_frame)
+        header_frame = DefaultFrame(self.budget_frame)
         header_frame.pack(fill="both", expand=True)
         month_number = int(month.split("-")[1])
-        header_label = tk.Label(
+        header_label = DefaultLabel(
             header_frame,
             text=f"Budget Summary for {calendar.month_name[month_number]}, {month.split('-')[0]}",
             font=(TEXT_FONT, TEXT_FONT_SIZE_LARGE),
         )
         header_label.pack(side="top")
 
-        upper_frame = tk.Frame(self.budget_frame)
+        upper_frame = DefaultFrame(self.budget_frame)
         upper_frame.pack(fill="both", expand=True, side="top")
         upper_frame.pack(pady=10)
         cols = list(df.columns)
@@ -367,7 +368,7 @@ class Home(ABPage):
         tree.pack(side="left", fill="both", expand=True)
 
         # create frame for plot
-        plot_frame = tk.Frame(upper_frame)
+        plot_frame = DefaultFrame(upper_frame)
         plot_frame.pack(pady=10)
         fig = get_budget_vs_spend_plt(month)
         self.figures.append(fig)
@@ -375,7 +376,7 @@ class Home(ABPage):
         canvas.draw()
         canvas.get_tk_widget().pack(side="right", fill="both", expand=True)
 
-        lower_frame = tk.Frame(self.budget_frame)
+        lower_frame = DefaultFrame(self.budget_frame)
         lower_frame.pack(fill="both", expand=True, side="bottom")
         # create pie chart
         fig = get_spend_per_category_pie_chart_plt(month)
@@ -418,8 +419,12 @@ class Transactions(ABPage):
         # spent is row where income = 0
         total_spent = df[df["income"] == 0]["total"].iloc[0]
         total_income = df[df["income"] == 1]["total"].iloc[0]
-        total_spent_label = tk.Label(frame, text=f"Total money spent: {total_spent}")
-        total_earnt_label = tk.Label(frame, text=f"Total money earnt: {total_income}")
+        total_spent_label = DefaultLabel(
+            frame, text=f"Total money spent: {total_spent}"
+        )
+        total_earnt_label = DefaultLabel(
+            frame, text=f"Total money earnt: {total_income}"
+        )
         total_spent_label.pack(side="bottom", pady=10)
         total_earnt_label.pack(side="bottom", pady=10)
 
@@ -437,7 +442,7 @@ class Budget(ABPage):
             call_on_udpate=self.show_plt,
         )
         table_frame.pack(side="top", fill="both", expand=True)
-        self.plot_frame = tk.Frame(self.frame)
+        self.plot_frame = DefaultFrame(self.frame)
         self.plot_frame.pack(side="bottom", fill="both", expand=True)
         self.show_plt()
 
@@ -445,7 +450,7 @@ class Budget(ABPage):
         self.clear_figures()
         if self.plot_frame:
             self.plot_frame.destroy()
-        self.plot_frame = tk.Frame(self.frame)
+        self.plot_frame = DefaultFrame(self.frame)
         self.plot_frame.pack(side="bottom", fill="both", expand=True)
         budget_history_plt = get_budget_history_plt()
         self.figures.append(budget_history_plt)
