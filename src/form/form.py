@@ -465,14 +465,14 @@ class TransactionsCsvForm(EditForm):
                 )
 
                 df["Code"] = df["Code"].apply(
-                    lambda x: str(x) if not pd.isnull(x) else ""
+                    lambda x: str(x).strip() if not pd.isnull(x) else ""
                 )
                 df["Category"] = df["Category"].apply(
-                    lambda x: str(x).title() if not pd.isnull(x) else ""
+                    lambda x: str(x).title().strip() if not pd.isnull(x) else ""
                 )
                 # convert nan descriptions to empty string
                 df["Description"] = df["Description"].apply(
-                    lambda x: str(x) if not pd.isnull(x) else ""
+                    lambda x: str(x).strip() if not pd.isnull(x) else ""
                 )
                 categories = set(df["Category"])
 
