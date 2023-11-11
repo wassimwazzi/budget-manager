@@ -22,9 +22,7 @@ def config_logger():
     log_file = f"logs/{ARGS.env}-{today}.log"
     if not os.path.exists("logs"):
         os.makedirs("logs")
-    if os.path.exists(log_file):
-        os.remove(log_file)
-    logging.basicConfig(level="DEBUG", filename=log_file)
+    logging.basicConfig(level="DEBUG", filename=log_file, filemode='a', format="%(asctime)s %(levelname)s:%(name)s: %(message)s")
 
     if ARGS.verbose:
         stream_handler = logging.StreamHandler(sys.stdout)
