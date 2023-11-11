@@ -28,7 +28,14 @@ from src.db.data_summarizer import (
     get_budget_history_plt,
 )
 from src.constants import TEXT_FONT
-from src.tools.defaults import DefaultFrame, DefaultLabel
+from src.tools.defaults import (
+    DefaultFrame,
+    DefaultLabel,
+    DefaultButton,
+    DefaultOptionMenu,
+    DefaultCheckButton,
+    DefaultEntry,
+)
 
 
 class EditableTable(DefaultFrame):
@@ -127,44 +134,46 @@ class EditableTable(DefaultFrame):
         filter_frame.pack(pady=10, side="top")
         self.filter_frame = filter_frame
         # create a button to refresh the transactions
-        refresh_button = tk.Button(filter_frame, text="Refresh", command=self.refresh)
+        refresh_button = DefaultButton(
+            filter_frame, text="Refresh", command=self.refresh
+        )
         # put on right side
         refresh_button.grid(row=1, column=0)
-        self.filters.append((tk.Button, refresh_button))
+        self.filters.append((DefaultButton, refresh_button))
         # dropdown to allow to sort by each column
         sort_label = DefaultLabel(filter_frame, text="Sort by:")
         sort_label.grid(row=0, column=1)
         sort_options = self.display_columns
         sort_var = tk.StringVar()
         sort_var.set(sort_options[0])
-        self.filters.append((tk.OptionMenu, sort_var))
-        sort_dropdown = tk.OptionMenu(filter_frame, sort_var, *sort_options)
+        self.filters.append((DefaultOptionMenu, sort_var))
+        sort_dropdown = DefaultOptionMenu(filter_frame, sort_var, *sort_options)
         sort_dropdown.grid(row=1, column=1)
         # asc or desc checkbox
         sort_asc_var = tk.BooleanVar()
         sort_asc_var.set(False)
-        sort_asc_checkbox = tk.Checkbutton(
+        sort_asc_checkbox = DefaultCheckButton(
             filter_frame, text="Ascending", variable=sort_asc_var
         )
         sort_asc_checkbox.grid(row=1, column=2)
-        self.filters.append((tk.Checkbutton, sort_asc_var))
+        self.filters.append((DefaultCheckButton, sort_asc_var))
         # dropdown for search column
         search_menu_label = DefaultLabel(filter_frame, text="Search column:")
         search_menu_label.grid(row=0, column=3)
         search_menu_var = tk.StringVar()
         search_menu_var.set(sort_options[0])
-        search_menu = tk.OptionMenu(filter_frame, search_menu_var, *sort_options)
+        search_menu = DefaultOptionMenu(filter_frame, search_menu_var, *sort_options)
         search_menu.grid(row=1, column=3)
-        self.filters.append((tk.OptionMenu, search_menu_var))
+        self.filters.append((DefaultOptionMenu, search_menu_var))
         # search for a string in a column
         search_label = DefaultLabel(filter_frame, text="Search:")
         search_label.grid(row=0, column=4)
         search_var = tk.StringVar()
-        search_entry = tk.Entry(filter_frame, textvariable=search_var)
+        search_entry = DefaultEntry(filter_frame, textvariable=search_var)
         search_entry.grid(row=1, column=4)
-        self.filters.append((tk.Entry, search_var))
+        self.filters.append((DefaultEntry, search_var))
         # submit button
-        submit_button = tk.Button(
+        submit_button = DefaultButton(
             filter_frame,
             text="Submit",
             command=lambda: self.filter_table(
@@ -176,7 +185,7 @@ class EditableTable(DefaultFrame):
         )
         submit_button.grid(row=1, column=5)
         self.filters_submit_button = submit_button
-        self.filters.append((tk.Button, submit_button))
+        self.filters.append((DefaultButton, submit_button))
 
     def show_applied_filters(self):
         # show applied search filters
@@ -197,11 +206,11 @@ class EditableTable(DefaultFrame):
     def clear_filters(self):
         self.applied_search_filters = []
         for filter_type, filter_value in self.filters:
-            if filter_type == tk.Entry:
+            if filter_type == DefaultEntry:
                 filter_value.set("")
-            elif filter_type == tk.OptionMenu:
+            elif filter_type == DefaultOptionMenu:
                 filter_value.set(self.display_columns[0])
-            elif filter_type == tk.Checkbutton:
+            elif filter_type == DefaultCheckButton:
                 filter_value.set(False)
         self.show_applied_filters()
         self.show_table()
@@ -235,7 +244,7 @@ class EditableTable(DefaultFrame):
         # keep applied filters, if any
         args = []
         for filter_type, filter_value in self.filters:
-            if filter_type != tk.Button:
+            if filter_type != DefaultButton:
                 args.append(filter_value.get())
         assert len(args) == 4
         self.filter_table(*args[:4], update_filters=False)

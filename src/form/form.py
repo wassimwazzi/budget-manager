@@ -18,7 +18,11 @@ from src.form.fields import (
 from src.db.dbmanager import DBManager
 from src.constants import *
 from src.tools.text_classifier import GPTClassifier, SimpleClassifier
-from src.tools.defaults import DefaultFrame, DefaultLabel
+from src.tools.defaults import (
+    DefaultFrame,
+    DefaultLabel,
+    DefaultButton,
+)
 
 
 def confirm_selection(func):
@@ -47,7 +51,7 @@ class ABForm(ABC):
         form: DefaultFrame,
         form_fields: list[FormField],
         form_title: str,
-        action_buttons: list[tk.Button] = None,
+        action_buttons: list[DefaultButton] = None,
     ):
         self.form_fields = form_fields
         self.error_labels = [
@@ -61,7 +65,7 @@ class ABForm(ABC):
         self.form.pack(pady=20)
         if not action_buttons:
             action_buttons = [
-                tk.Button(
+                DefaultButton(
                     form,
                     text="Submit",
                     command=self.submit,
@@ -224,25 +228,25 @@ class EditForm(ABForm):
         form_fields: list[FormField],
         form_title: str,
         entry_id: int | str,
-        action_buttons: list[tk.Button] = None,
+        action_buttons: list[DefaultButton] = None,
     ):
         if not action_buttons:
             action_buttons = [
-                tk.Button(
+                DefaultButton(
                     form,
                     text="Update",
                     command=self.submit,
                     font=(TEXT_FONT, TEXT_FONT_SIZE_MEDIUM),
                     fg=BUTTON_UPDATE_FG,
                 ),
-                tk.Button(
+                DefaultButton(
                     form,
                     text="Delete",
                     command=self.delete,
                     font=(TEXT_FONT, TEXT_FONT_SIZE_MEDIUM),
                     fg=BUTTON_DELETE_FG,
                 ),
-                tk.Button(
+                DefaultButton(
                     form,
                     text="New",
                     command=self.new,
@@ -306,14 +310,14 @@ class TransactionsCsvForm(EditForm):
             ),
         ]
         self.action_buttons = [
-            tk.Button(
+            DefaultButton(
                 self.form,
                 text="Submit",
                 command=super().submit,
                 font=(TEXT_FONT, TEXT_FONT_SIZE_MEDIUM),
                 fg=BUTTON_SUBMIT_FG,
             ),
-            tk.Button(
+            DefaultButton(
                 self.form,
                 text="Delete",
                 command=self.delete,

@@ -1,5 +1,9 @@
 import tkinter as tk
-from src.constants import TKINTER_BACKGROUND_COLOR, TEXT_FOREGROUND_COLOR, TEXT_BACKGROUND_COLOR
+from src.constants import (
+    TKINTER_BACKGROUND_COLOR,
+    TEXT_FOREGROUND_COLOR,
+    TEXT_BACKGROUND_COLOR,
+)
 
 
 class DefaultFrame(tk.Frame):
@@ -18,10 +22,39 @@ class DefaultFrame(tk.Frame):
         super().__init__(*args, background=background, **kwargs)
 
 
+def set_defaults(kwargs):
+    """
+    Set default values in dictionary
+    """
+    kwargs.setdefault("fg", TEXT_FOREGROUND_COLOR)
+    kwargs.setdefault("bg", TEXT_BACKGROUND_COLOR)
+    kwargs.setdefault("highlightbackground", TEXT_BACKGROUND_COLOR)
+    kwargs.setdefault("highlightcolor", TEXT_FOREGROUND_COLOR)
+
+
 class DefaultLabel(tk.Label):
     def __init__(self, *args, **kwargs):
-        fg = kwargs.pop('fg', TEXT_FOREGROUND_COLOR)
-        bg = kwargs.pop('bg', TEXT_BACKGROUND_COLOR)
-        hbg = kwargs.pop('highlightbackground', TEXT_BACKGROUND_COLOR)
-        hc = kwargs.pop('highlightcolor', TEXT_FOREGROUND_COLOR)
-        super().__init__(*args, fg=fg, bg=bg, highlightbackground=hbg, highlightcolor=hc, **kwargs)
+        set_defaults(kwargs)
+        super().__init__(*args, **kwargs)
+
+
+class DefaultButton(tk.Button):
+    def __init__(self, *args, **kwargs):
+        set_defaults(kwargs)
+        super().__init__(*args, **kwargs)
+
+
+class DefaultOptionMenu(tk.OptionMenu):
+    pass
+
+
+class DefaultEntry(tk.Entry):
+    def __init__(self, *args, **kwargs):
+        set_defaults(kwargs)
+        super().__init__(*args, **kwargs)
+
+
+class DefaultCheckButton(tk.Checkbutton):
+    def __init__(self, *args, **kwargs):
+        set_defaults(kwargs)
+        super().__init__(*args, **kwargs)

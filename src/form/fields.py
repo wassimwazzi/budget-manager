@@ -5,7 +5,13 @@ import tkinter as tk
 from tkinter import filedialog
 import logging
 from src.constants import *
-from src.tools.defaults import DefaultFrame
+from src.tools.defaults import (
+    DefaultFrame,
+    DefaultEntry,
+    DefaultButton,
+    DefaultCheckButton,
+    DefaultOptionMenu,
+)
 
 
 logger = logging.getLogger("main").getChild(__name__)
@@ -130,7 +136,7 @@ class DateField(FormField):
             return (False, f"Invalid date format, must be {self.date_format}")
 
     def get_tk_field_template(self):
-        return tk.Entry(self.get_form())
+        return DefaultEntry(self.get_form())
 
 
 class TextField(FormField):
@@ -143,7 +149,7 @@ class TextField(FormField):
         return (True, None)
 
     def get_tk_field_template(self):
-        return tk.Entry(self.get_form())
+        return DefaultEntry(self.get_form())
 
 
 class NumberField(FormField):
@@ -159,7 +165,7 @@ class NumberField(FormField):
         return (True, None)
 
     def get_tk_field_template(self):
-        return tk.Entry(self.get_form())
+        return DefaultEntry(self.get_form())
 
 
 class DropdownField(FormField):
@@ -186,7 +192,7 @@ class DropdownField(FormField):
             self.clicked.set(self.options[0])
         else:
             self.options.append("")
-        return tk.OptionMenu(self.form, self.clicked, *self.options)
+        return DefaultOptionMenu(self.form, self.clicked, *self.options)
 
     def get_value(self) -> str:
         return self.clicked.get()
@@ -219,7 +225,7 @@ class UploadFileField(FormField):
         return (True, None)
 
     def get_tk_field_template(self, **kwargs):
-        return tk.Button(
+        return DefaultButton(
             self.form,
             text="Upload file",
             command=self.upload_file,
@@ -263,7 +269,7 @@ class CheckBoxField(FormField):
         return (True, None)
 
     def get_tk_field_template(self):
-        return tk.Checkbutton(self.form, variable=self.clicked)
+        return DefaultCheckButton(self.form, variable=self.clicked)
 
     def get_value(self) -> str:
         return self.clicked.get()
