@@ -27,6 +27,7 @@ from src.db.data_summarizer import (
     get_budget_minus_spend_bar_chart_plt,
     get_budget_history_plt,
 )
+from src.constants import TEXT_FONT
 
 
 class EditableTable(tk.Frame):
@@ -180,7 +181,7 @@ class EditableTable(tk.Frame):
         # show applied search filters
         if self.applied_search_filters:
             applied_filters_label = tk.Label(
-                self.filter_frame, text="Applied filters:", font=("Arial", 10)
+                self.filter_frame, text="Applied filters:", font=(TEXT_FONT, 10)
             )
             applied_filters_label.grid(row=0, column=len(self.filters) + 1)
             filters = ", ".join(self.applied_search_filters)
@@ -308,7 +309,7 @@ class Home(ABPage):
         header_label = tk.Label(
             header_frame,
             text=f"Budget Summary for {calendar.month_name[month_number]}, {month.split('-')[0]}",
-            font=("Arial", 20),
+            font=(TEXT_FONT, TEXT_FONT_SIZE_LARGE),
         )
         header_label.pack(side="top")
 

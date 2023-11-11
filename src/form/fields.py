@@ -4,9 +4,10 @@ from abc import ABC, abstractmethod
 import tkinter as tk
 from tkinter import filedialog
 import logging
+from src.constants import *
 
 
-logger = logging.getLogger('main').getChild(__name__)
+logger = logging.getLogger("main").getChild(__name__)
 
 
 class FieldType(Enum):
@@ -221,8 +222,8 @@ class UploadFileField(FormField):
             self.form,
             text="Upload file",
             command=self.upload_file,
-            font=("Arial", 12),
-            fg="black",
+            font=(TEXT_FONT, TEXT_FONT_SIZE_SMALL),
+            fg=BUTTON_TEXT_COLOR,
             **kwargs,
         )
 
@@ -230,7 +231,7 @@ class UploadFileField(FormField):
         file_path = filedialog.askopenfilename(
             title="Select file", filetypes=self.file_types
         )
-        self.get_tk_field().config(text=file_path, fg="black")
+        self.get_tk_field().config(text=file_path)
         self.uploaded_file_path = file_path
 
     def get_value(self) -> str:
@@ -238,11 +239,11 @@ class UploadFileField(FormField):
 
     def set_value(self, value: str):
         self.uploaded_file_path = value
-        self.get_tk_field().config(text=value, fg="black")
+        self.get_tk_field().config(text=value)
 
     def clear(self):
         self.uploaded_file_path = None
-        self.get_tk_field().config(text="Upload file", fg="black")
+        self.get_tk_field().config(text="Upload file")
 
 
 class CheckBoxField(FormField):

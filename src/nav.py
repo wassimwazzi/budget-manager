@@ -1,4 +1,5 @@
 import tkinter as tk
+from src.constants import *
 
 
 class NavFrame(tk.Frame):
@@ -13,7 +14,7 @@ class NavFrame(tk.Frame):
         links: list[callable],
         active_link: callable,
     ):
-        super().__init__(parent, bg="purple")
+        super().__init__(parent, bg=NAVBAR_BACKGROUND_COLOR)
         self.controller = controller
         self.links = links
         self.active_link = active_link
@@ -21,8 +22,8 @@ class NavFrame(tk.Frame):
 
     def render(self):
         for i, frame in enumerate(self.links):
-            bg = "white" if frame == self.active_link else "purple"
-            fg = "black" if frame == self.active_link else "white"
+            bg = NAVBAR_ACTIVE_BACKGROUND_COLOR if frame == self.active_link else NAVBAR_BACKGROUND_COLOR
+            fg = NAVBAR_ACTIVE_TEXT_COLOR if frame == self.active_link else NAVBAR_TEXT_COLOR
             link_label = tk.Label(
                 self,
                 text=frame.__name__,

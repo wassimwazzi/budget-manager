@@ -1,2 +1,30 @@
-# hex code is for lightgrey
-TKINTER_BACKGROUND_COLOR = "#d3d3d3"
+# Background color for Tkinter window
+TKINTER_BACKGROUND_COLOR = "red"
+
+# NAVBAR
+NAVBAR_BACKGROUND_COLOR = "#e6e6fa"  # lavender
+NAVBAR_TEXT_COLOR = "#000000"  # black
+NAVBAR_ACTIVE_TEXT_COLOR = "#ffffff"  # white
+NAVBAR_ACTIVE_BACKGROUND_COLOR = "#000000"  # black
+
+# BUTTONS
+BUTTON_BACKGROUND_COLOR = "#ffffff"  # white
+BUTTON_TEXT_COLOR = "#000000"  # black
+BUTTON_ACTIVE_BACKGROUND_COLOR = "#000000"  # black
+BUTTON_ACTIVE_TEXT_COLOR = "#ffffff"  # white
+BUTTON_SUBMIT_FG = "dark green"
+BUTTON_UPDATE_FG = "dark goldenrod"
+BUTTON_DELETE_FG = "dark red"
+
+
+# TEXT
+TEXT_BACKGROUND_COLOR = "#000000"  # black
+TEXT_FOREGROUND_COLOR = "#ffffff"  # white
+TEXT_FONT = 'Arial'
+TEXT_FONT_SIZE_SMALL = 12
+TEXT_FONT_SIZE_MEDIUM = 15
+TEXT_FONT_SIZE_LARGE = 20
+
+# FORM
+FORM_ERROR_COLOR = "#ff0000"  # red
+FORM_SUCCESS_COLOR = "#008000"  # green

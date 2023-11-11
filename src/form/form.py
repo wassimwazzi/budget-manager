@@ -16,6 +16,7 @@ from src.form.fields import (
     CheckBoxField,
 )
 from src.db.dbmanager import DBManager
+from src.constants import *
 from src.tools.text_classifier import GPTClassifier, SimpleClassifier
 
 
@@ -28,7 +29,7 @@ def confirm_selection(func):
     return wrapper
 
 
-logger = logging.getLogger('main').getChild(__name__)
+logger = logging.getLogger("main").getChild(__name__)
 
 
 class ABForm(ABC):
@@ -36,8 +37,8 @@ class ABForm(ABC):
     Abstract base class for forms
     """
 
-    ERROR_COLOR = "red"
-    SUCCESS_COLOR = "green"
+    ERROR_COLOR = FORM_ERROR_COLOR
+    SUCCESS_COLOR = FORM_SUCCESS_COLOR
     VALID_COLOR = "SystemButtonFace"
 
     def __init__(
@@ -49,10 +50,12 @@ class ABForm(ABC):
     ):
         self.form_fields = form_fields
         self.error_labels = [
-            tk.Label(form, text="", font=("Arial", 10), fg=ABForm.ERROR_COLOR)
+            tk.Label(form, text="", font=(TEXT_FONT, 10), fg=ABForm.ERROR_COLOR)
             for _ in form_fields
         ]
-        self.form_message_label = tk.Label(form, text="", font=("Arial", 15))
+        self.form_message_label = tk.Label(
+            form, text="", font=(TEXT_FONT, TEXT_FONT_SIZE_MEDIUM)
+        )
         self.form = form
         self.form.pack(pady=20)
         if not action_buttons:
@@ -61,8 +64,8 @@ class ABForm(ABC):
                     form,
                     text="Submit",
                     command=self.submit,
-                    font=("Arial", 15),
-                    fg="dark green",
+                    font=(TEXT_FONT, TEXT_FONT_SIZE_MEDIUM),
+                    fg=BUTTON_SUBMIT_FG,
                 )
             ]
         self.action_buttons = action_buttons
@@ -75,16 +78,16 @@ class ABForm(ABC):
         self.set_action_buttons_layout()
 
         self.form_message_label.grid(
-            row=self.form.grid_size()[1], columnspan=3, padx=20
+            row=self.form.grid_size()[1], columnspan=3, padx=TEXT_FONT_SIZE_LARGE
         )
 
     def set_form_title(self):
         tk.Label(
             self.form,
             text=self.form_title,
-            font=("Arial", 20),
-            fg="white",
-            bg="#2a2a2a",
+            font=(TEXT_FONT, TEXT_FONT_SIZE_LARGE),
+            fg=TEXT_FOREGROUND_COLOR,
+            # bg=TEXT_BACKGROUND_COLOR,
         ).grid(row=0, padx=20, pady=20)
 
     def set_action_buttons_layout(self):
@@ -162,7 +165,12 @@ class ABForm(ABC):
         :param form_field: the form field to layout
         """
         field_name = form_field.get_display_name()
-        tk_label = tk.Label(self.form, text=field_name, font=("Arial", 12), fg="white")
+        tk_label = tk.Label(
+            self.form,
+            text=field_name,
+            font=(TEXT_FONT, TEXT_FONT_SIZE_SMALL),
+            fg=TEXT_FOREGROUND_COLOR,
+        )
         tk_label.grid(row=i * 2, column=0, sticky="w", padx=10, pady=10)
         tk_field = form_field.get_tk_field()
         tk_field.config(
@@ -176,7 +184,12 @@ class ABForm(ABC):
         # i is the row number of the form field. Starts at 1
         field_name = form_field.get_display_name()
         row_position = (i - 1) // elements_per_row  # 0 indexed
-        tk_label = tk.Label(self.form, text=field_name, font=("Arial", 12), fg="white")
+        tk_label = tk.Label(
+            self.form,
+            text=field_name,
+            font=(TEXT_FONT, TEXT_FONT_SIZE_SMALL),
+            fg=TEXT_FOREGROUND_COLOR,
+        )
         tk_label.grid(
             row=row_position * elements_per_row + 1,
             column=(i - 1) % elements_per_row,
@@ -218,22 +231,22 @@ class EditForm(ABForm):
                     form,
                     text="Update",
                     command=self.submit,
-                    font=("Arial", 15),
-                    fg="dark goldenrod",
+                    font=(TEXT_FONT, TEXT_FONT_SIZE_MEDIUM),
+                    fg=BUTTON_UPDATE_FG,
                 ),
                 tk.Button(
                     form,
                     text="Delete",
                     command=self.delete,
-                    font=("Arial", 15),
-                    fg="red",
+                    font=(TEXT_FONT, TEXT_FONT_SIZE_MEDIUM),
+                    fg=BUTTON_DELETE_FG,
                 ),
                 tk.Button(
                     form,
                     text="New",
                     command=self.new,
-                    font=("Arial", 15),
-                    fg="dark green",
+                    font=(TEXT_FONT, TEXT_FONT_SIZE_MEDIUM),
+                    fg=BUTTON_SUBMIT_FG,
                 ),
             ]
         self.action_buttons = action_buttons
@@ -296,15 +309,15 @@ class TransactionsCsvForm(EditForm):
                 self.form,
                 text="Submit",
                 command=super().submit,
-                font=("Arial", 15),
-                fg="dark green",
+                font=(TEXT_FONT, TEXT_FONT_SIZE_MEDIUM),
+                fg=BUTTON_SUBMIT_FG,
             ),
             tk.Button(
                 self.form,
                 text="Delete",
                 command=self.delete,
-                font=("Arial", 15),
-                fg="red",
+                font=(TEXT_FONT, TEXT_FONT_SIZE_MEDIUM),
+                fg=BUTTON_DELETE_FG,
             ),
         ]
         self.db = DBManager()
@@ -754,7 +767,12 @@ class AddTransactionForm(ABForm):
         # Entry under label, error label under entry
         field_name = form_field.get_display_name()
         row_position = (i - 1) // 3  # 0 indexed
-        tk_label = tk.Label(self.form, text=field_name, font=("Arial", 12), fg="white")
+        tk_label = tk.Label(
+            self.form,
+            text=field_name,
+            font=(TEXT_FONT, TEXT_FONT_SIZE_SMALL),
+            fg="white",
+        )
         tk_label.grid(
             row=row_position * 3 + 1, column=(i - 1) % 3, sticky="w", padx=5, pady=10
         )
