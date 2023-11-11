@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from screeninfo import get_monitors
 from src.pages import Home, Transactions, Budget, Files, Categories
 from src.nav import NavFrame
-from src.constants import TKINTER_BACKGROUND_COLOR
+from src.constants import *
 from src.tools.defaults import DefaultFrame
 
 PAGES = [

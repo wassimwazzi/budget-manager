@@ -1,8 +1,11 @@
 import tkinter as tk
+
 from src.constants import (
     TKINTER_BACKGROUND_COLOR,
     TEXT_FOREGROUND_COLOR,
     TEXT_BACKGROUND_COLOR,
+    BUTTON_BACKGROUND_COLOR,
+    BUTTON_TEXT_COLOR,
 )
 
 
@@ -28,8 +31,8 @@ def set_defaults(kwargs):
     """
     kwargs.setdefault("fg", TEXT_FOREGROUND_COLOR)
     kwargs.setdefault("bg", TEXT_BACKGROUND_COLOR)
-    kwargs.setdefault("highlightbackground", TEXT_BACKGROUND_COLOR)
-    kwargs.setdefault("highlightcolor", TEXT_FOREGROUND_COLOR)
+    kwargs.setdefault("highlightbackground", TKINTER_BACKGROUND_COLOR)
+    kwargs.setdefault("highlightcolor", TKINTER_BACKGROUND_COLOR)
 
 
 class DefaultLabel(tk.Label):
@@ -40,7 +43,9 @@ class DefaultLabel(tk.Label):
 
 class DefaultButton(tk.Button):
     def __init__(self, *args, **kwargs):
-        set_defaults(kwargs)
+        kwargs.setdefault("fg", BUTTON_TEXT_COLOR)
+        kwargs.setdefault("bg", BUTTON_BACKGROUND_COLOR)
+        kwargs.setdefault("highlightbackground", TKINTER_BACKGROUND_COLOR)
         super().__init__(*args, **kwargs)
 
 

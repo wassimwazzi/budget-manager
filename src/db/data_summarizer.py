@@ -4,7 +4,7 @@ import logging
 import matplotlib.pyplot as plt
 import pandas as pd
 from src.db.dbmanager import DBManager
-from src.constants import TKINTER_BACKGROUND_COLOR
+from src.constants import *
 
 
 db = DBManager()
@@ -288,8 +288,8 @@ def get_budget_vs_spend_plt(month):
     df = get_budget_summary_df(month)
 
     fig, ax = plt.subplots()  # Adjust the figure size as needed
-    fig.patch.set_facecolor(TKINTER_BACKGROUND_COLOR)
-    ax.set_facecolor(TKINTER_BACKGROUND_COLOR)
+    fig.patch.set_facecolor(PLOT_BACKGROUND_COLOR)
+    ax.set_facecolor(PLOT_BACKGROUND_COLOR)
     # Create a bar chart of the budget vs. actual for each category
     width = 0.4
     x = range(len(df["Category"]))
@@ -340,8 +340,8 @@ def get_spend_per_category_pie_chart_plt(month=None):
         )
     df = pd.DataFrame(transactions_for_month, columns=["category", "total"])
     fig, ax = plt.subplots()  # Adjust the size as needed
-    fig.patch.set_facecolor(TKINTER_BACKGROUND_COLOR)
-    ax.set_facecolor(TKINTER_BACKGROUND_COLOR)
+    fig.patch.set_facecolor(PLOT_BACKGROUND_COLOR)
+    ax.set_facecolor(PLOT_BACKGROUND_COLOR)
 
     # Calculate percentages and labels
     total_spend = df["total"].sum()
@@ -373,8 +373,8 @@ def get_spend_per_category_pie_chart_plt(month=None):
 def get_budget_minus_spend_bar_chart_plt(month):
     df = get_budget_summary_df(month)
     fig, ax = plt.subplots()  # Adjust the figure size as needed
-    fig.patch.set_facecolor(TKINTER_BACKGROUND_COLOR)
-    ax.set_facecolor(TKINTER_BACKGROUND_COLOR)
+    fig.patch.set_facecolor(PLOT_BACKGROUND_COLOR)
+    ax.set_facecolor(PLOT_BACKGROUND_COLOR)
 
     # Create a bar chart of the budget vs. actual for each category
     width = 0.4
@@ -402,8 +402,8 @@ def get_budget_history_plt(category=None):
     # DF SHOULD BE SORTED BY CATEGORY AND START_DATE!!
     budget_history_df = get_budget_history_df()
     fig, ax = plt.subplots()  # Adjust the figure size as needed
-    fig.patch.set_facecolor(TKINTER_BACKGROUND_COLOR)
-    ax.set_facecolor(TKINTER_BACKGROUND_COLOR)
+    fig.patch.set_facecolor(PLOT_BACKGROUND_COLOR)
+    ax.set_facecolor(PLOT_BACKGROUND_COLOR)
 
     dates = budget_history_df["start_date"].unique()
     # convert the dates to datetime objects

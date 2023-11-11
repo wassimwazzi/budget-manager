@@ -27,7 +27,7 @@ from src.db.data_summarizer import (
     get_budget_minus_spend_bar_chart_plt,
     get_budget_history_plt,
 )
-from src.constants import TEXT_FONT
+from src.constants import *
 from src.tools.defaults import (
     DefaultFrame,
     DefaultLabel,

@@ -1,5 +1,5 @@
 # Background color for Tkinter window
-TKINTER_BACKGROUND_COLOR = "grey"
+TKINTER_BACKGROUND_COLOR = "#F0F0F0"
 
 # NAVBAR
 NAVBAR_BACKGROUND_COLOR = "#e6e6fa"  # lavender
@@ -28,3 +28,6 @@ TEXT_FONT_SIZE_LARGE = 20
 # FORM
 FORM_ERROR_COLOR = "#ff0000"  # red
 FORM_SUCCESS_COLOR = "#008000"  # green
+
+# PLOT
+PLOT_BACKGROUND_COLOR = 'white'
