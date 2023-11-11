@@ -3,6 +3,10 @@ from enum import Enum
 from abc import ABC, abstractmethod
 import tkinter as tk
 from tkinter import filedialog
+import logging
+
+
+logger = logging.getLogger('main').getChild(__name__)
 
 
 class FieldType(Enum):
@@ -11,13 +15,22 @@ class FieldType(Enum):
     NUMBER = "number"
     DROPDOWN = "dropdown"
     UPLOAD_FILE = "upload_file"
+    CHECKBOX = "checkbox"
 
 
 class FormField(ABC):
     def __init__(
-        self, name: str, field_type: FieldType, required: bool, form: tk.Frame
+        self,
+        name: str,
+        field_type: FieldType,
+        required: bool,
+        form: tk.Frame,
+        display_name: str = None,
     ):
-        self.name = name
+        self.name = name  # name of the field in the database
+        self.display_name = (
+            display_name or name.replace("_", " ").title()
+        )  # name of the field to display to the user
         self.field_type = field_type
         self.required = required
         self.form = form
@@ -26,6 +39,9 @@ class FormField(ABC):
 
     def get_name(self) -> str:
         return self.name
+
+    def get_display_name(self) -> str:
+        return self.display_name
 
     def get_type(self) -> FieldType:
         return self.field_type
@@ -38,6 +54,9 @@ class FormField(ABC):
 
     def get_value(self):
         return self.get_tk_field().get()
+
+    def set_value(self, value: str):
+        self.get_tk_field().insert(0, value)
 
     def validate(self) -> bool:
         value = self.get_value()
@@ -75,9 +94,14 @@ class FormField(ABC):
 
 class DateField(FormField):
     def __init__(
-        self, name: str, required: bool, form: tk.Frame, date_format: str = "YYYY-MM-DD"
+        self,
+        name: str,
+        required: bool,
+        form: tk.Frame,
+        date_format: str = "YYYY-MM-DD",
+        display_name: str = None,
     ):
-        super().__init__(name, FieldType.DATE, required, form)
+        super().__init__(name, FieldType.DATE, required, form, display_name)
         self.date_format = date_format
 
     def validate_value(self, value: str) -> (bool, str):
@@ -100,7 +124,7 @@ class DateField(FormField):
                 return (False, "Date cannot be in the future")
             return (True, None)
         except ValueError as e:
-            print(e)
+            logger.error("Error validating date: %s", e)
             return (False, f"Invalid date format, must be {self.date_format}")
 
     def get_tk_field_template(self):
@@ -108,8 +132,10 @@ class DateField(FormField):
 
 
 class TextField(FormField):
-    def __init__(self, name: str, required: bool, form: tk.Frame):
-        super().__init__(name, FieldType.TEXT, required, form)
+    def __init__(
+        self, name: str, required: bool, form: tk.Frame, display_name: str = None
+    ):
+        super().__init__(name, FieldType.TEXT, required, form, display_name)
 
     def validate_value(self, value: str) -> (bool, str):
         return (True, None)
@@ -119,8 +145,10 @@ class TextField(FormField):
 
 
 class NumberField(FormField):
-    def __init__(self, name: str, required: bool, form: tk.Frame):
-        super().__init__(name, FieldType.NUMBER, required, form)
+    def __init__(
+        self, name: str, required: bool, form: tk.Frame, display_name: str = None
+    ):
+        super().__init__(name, FieldType.NUMBER, required, form, display_name)
 
     def validate_value(self, value: str) -> (bool, str):
         valid = value.replace(".", "").isdigit()
@@ -133,8 +161,15 @@ class NumberField(FormField):
 
 
 class DropdownField(FormField):
-    def __init__(self, name: str, required: bool, options: list[str], form: tk.Frame):
-        super().__init__(name, FieldType.DROPDOWN, required, form)
+    def __init__(
+        self,
+        name: str,
+        required: bool,
+        options: list[str],
+        form: tk.Frame,
+        display_name: str = None,
+    ):
+        super().__init__(name, FieldType.DROPDOWN, required, form, display_name)
         self.options = options
         self.clicked = tk.StringVar()
 
@@ -154,6 +189,9 @@ class DropdownField(FormField):
     def get_value(self) -> str:
         return self.clicked.get()
 
+    def set_value(self, value: str):
+        self.clicked.set(value)
+
     def get_options(self) -> list[str]:
         return self.options
 
@@ -168,6 +206,7 @@ class UploadFileField(FormField):
         required: bool,
         form: tk.Frame,
         file_types: list[(str, str)] = None,
+        display_name: str = None,
     ):
         self.file_types = file_types or [("All", "*.*")]
         self.uploaded_file_path = None
@@ -197,6 +236,38 @@ class UploadFileField(FormField):
     def get_value(self) -> str:
         return self.uploaded_file_path
 
+    def set_value(self, value: str):
+        self.uploaded_file_path = value
+        self.get_tk_field().config(text=value, fg="black")
+
     def clear(self):
         self.uploaded_file_path = None
         self.get_tk_field().config(text="Upload file", fg="black")
+
+
+class CheckBoxField(FormField):
+    def __init__(
+        self,
+        name: str,
+        required: bool,
+        form: tk.Frame,
+        display_name: str = None,
+    ):
+        super().__init__(name, FieldType.CHECKBOX, required, form, display_name)
+        self.clicked = tk.BooleanVar()
+        self.clicked.set(False)
+
+    def validate_value(self, value: str) -> (bool, str):
+        return (True, None)
+
+    def get_tk_field_template(self):
+        return tk.Checkbutton(self.form, variable=self.clicked)
+
+    def get_value(self) -> str:
+        return self.clicked.get()
+
+    def set_value(self, value: str):
+        self.clicked.set(value)
+
+    def clear(self):
+        self.clicked.set(False)

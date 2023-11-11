@@ -1,6 +1,11 @@
 # Database
 *.sqlite3
 .DS_Store
+# ignore all .env files except .env.example
+!.env.example
+.env*
+logs/
+.vscode/
 
 ## Auto generated
 # Byte-compiled / optimized / DLL files
