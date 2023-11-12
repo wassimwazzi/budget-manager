@@ -6,3 +6,7 @@ transformers
 pandas
 torch
 screeninfo
+rapidfuzz
+thefuzz
+# fuzzywuzzy
+# python-Levenshtein
