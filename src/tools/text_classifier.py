@@ -134,7 +134,7 @@ class SimpleClassifier(TextClassifier):
         return predicted_labels
 
 
-def fuzzy_search(text, labels, threshold=85, scorer=fuzz.partial_token_set_ratio):
+def fuzzy_search(text, labels, threshold=85, scorer=fuzz.token_set_ratio):
     """
     Given a text and a list of labels, find the label that best matches the text
     """

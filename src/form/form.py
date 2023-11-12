@@ -404,7 +404,7 @@ class TransactionsCsvForm(EditForm):
             if code:
                 # if previous transaction has same code, use that category
                 prev_code = fuzzy_search(
-                    code, prev_codes.keys(), scorer=fuzz.partial_token_set_ratio
+                    code, prev_codes.keys(), scorer=fuzz.token_set_ratio
                 )
                 if prev_code:
                     prev_category = prev_codes[prev_code]
@@ -424,7 +424,7 @@ class TransactionsCsvForm(EditForm):
                 prev_description = fuzzy_search(
                     description,
                     prev_descriptions.keys(),
-                    scorer=fuzz.partial_token_sort_ratio,
+                    scorer=fuzz.token_sort_ratio,
                 )
                 if prev_description:
                     prev_category = prev_descriptions[prev_description]
@@ -446,6 +446,10 @@ class TransactionsCsvForm(EditForm):
                 )
                 new_categories.append(result)
                 inferred_categories.append(True)
+                # add to previous transactions
+                prev_descriptions[description] = result
+                if code:
+                    prev_codes[code] = result
             else:
                 logger.debug(
                     "Using default category Other as no description was given and couldn't match code. %s",
