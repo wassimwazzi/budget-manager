@@ -70,8 +70,10 @@ if [ ! -f "$HOME/budget-manager/env.prod" ]
 then
     echo "Creating env file"
     touch .env.prod
-    echo "DB_FILE=db.prod.sqlite3" >> .env.prod
 fi
+# add to env if not already there
+grep -qF 'DB_FILE=' .env.prod || echo 'DB_FILE=db.prod.sqlite3' >> .env.prod
+
 
 # Run program
 python3 main.py --env prod --log_level INFO

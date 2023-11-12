@@ -6,3 +6,4 @@ transformers
 pandas
 torch
 screeninfo
+plaid-python
