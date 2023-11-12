@@ -64,6 +64,7 @@ class EditableTable(tk.Frame):
         self.extra_callback = extra_callback
         # Called whenever the table is updated, in case other widgets need to be refreshed
         self.call_on_update = call_on_udpate
+        self.last_clicked_row_index = None  # index of last clicked row
         self.show_filters()
         self.show_table()
 
@@ -77,13 +78,14 @@ class EditableTable(tk.Frame):
         for widget in self.edit_form_frame.winfo_children():
             widget.destroy()
 
-        row_id = event.widget.index(selected_row)
-        transaction_id = self.data.loc[int(row_id)][self.primary_key]
-        self.edit_form = self.edit_form_cls(self.edit_form_frame, transaction_id)
+        row_index = event.widget.index(selected_row)
+        self.last_clicked_row_index = row_index
+        row_pk = self.data.loc[int(row_index)][self.primary_key]
+        self.edit_form = self.edit_form_cls(self.edit_form_frame, row_pk)
         self.edit_form.register_listener(self)
         fields = self.edit_form.get_form_fields()
         for field in fields:
-            field.set_value(self.data.loc[int(row_id)][field.get_name()])
+            field.set_value(self.data.loc[int(row_index)][field.get_name()])
 
     def show_table(self):
         if self.data is None:
@@ -237,12 +239,27 @@ class EditableTable(tk.Frame):
                 args.append(filter_value.get())
         assert len(args) == 4
         self.filter_table(*args[:4], update_filters=False)
+
+        # scroll to position of updated row
+        table = self.table_frame.children["!treeview"]
+        table_length = len(table.get_children())
+        if self.last_clicked_row_index:
+            # if row is out of bounds, scroll to bottom
+            if self.last_clicked_row_index >= table_length:
+                table.yview_moveto(1)
+            else:
+                table.yview_moveto(self.last_clicked_row_index / table_length)
+                # hihglight row
+                row_item = table.get_children()[self.last_clicked_row_index]
+                table.selection_set(row_item)
+
         if self.call_on_update:
             self.call_on_update()
 
     def refresh(self):
         self.data = None
         self.applied_search_filters = []
+        self.last_clicked_row = None
         self.clear_filters()
         self.show_table()
 
