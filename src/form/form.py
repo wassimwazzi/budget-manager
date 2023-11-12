@@ -377,8 +377,8 @@ class TransactionsCsvForm(EditForm):
             """,
             [],
         )
-        # add was inferred column
-        df["Inferred_Category"] = False
+        new_categories = []
+        inferred_categories = []
         prev_codes = {row[1]: row[2] for row in prev_transactions if row[1]}
         prev_descriptions = {row[0]: row[2] for row in prev_transactions if row[0]}
         for _, row in df.iterrows():
@@ -388,6 +388,8 @@ class TransactionsCsvForm(EditForm):
                     "Using existing category %s for row",
                     row["Category"],
                 )
+                new_categories.append(row["Category"])
+                inferred_categories.append(False)
                 continue
             code = row["Code"]
             description = row["Description"]
@@ -395,8 +397,8 @@ class TransactionsCsvForm(EditForm):
                 logger.debug(
                     "Using default category Other as no description or code. %s", row
                 )
-                row["Category"] = "Other"
-                row["Inferred_Category"] = True
+                new_categories.append("Other")
+                inferred_categories.append(True)
                 continue
 
             if code:
@@ -413,8 +415,8 @@ class TransactionsCsvForm(EditForm):
                         code,
                         prev_category,
                     )
-                    row["Category"] = prev_category
-                    row["Inferred_Category"] = True
+                    new_categories.append(prev_category)
+                    inferred_categories.append(True)
                     continue
 
             if description:
@@ -433,8 +435,8 @@ class TransactionsCsvForm(EditForm):
                         description,
                         prev_category,
                     )
-                    row["Category"] = prev_category
-                    row["Inferred_Category"] = True
+                    new_categories.append(prev_category)
+                    inferred_categories.append(True)
                     continue
 
                 # if no previous transaction has same description, use NLP
@@ -442,15 +444,17 @@ class TransactionsCsvForm(EditForm):
                 logger.debug(
                     "Inferred category using NLP for %s: %s", description, result
                 )
-                row["Category"] = result
-                row["Inferred_Category"] = True
+                new_categories.append(result)
+                inferred_categories.append(True)
             else:
                 logger.debug(
                     "Using default category Other as no description was given and couldn't match code. %s",
                     row,
                 )
-                row["Category"] = "Other"
-                row["Inferred_Category"] = True
+                new_categories.append("Other")
+                inferred_categories.append(True)
+        df["Inferred_Category"] = inferred_categories
+        df["Category"] = new_categories
         return df
 
     def update_file_status(self, id, status, message):
@@ -518,7 +522,7 @@ class TransactionsCsvForm(EditForm):
                 df["Description"] = df["Description"].apply(
                     lambda x: str(x).strip() if not pd.isnull(x) else ""
                 )
-                categories = set(df["Category"])
+                csv_categories = set(df["Category"])
 
                 existing_categories = [
                     category[0]
@@ -530,7 +534,7 @@ class TransactionsCsvForm(EditForm):
                 # validate category exists
                 missing_categories = [
                     category
-                    for category in categories
+                    for category in csv_categories
                     if category and category not in existing_categories
                 ]
                 if missing_categories:
@@ -544,17 +548,8 @@ class TransactionsCsvForm(EditForm):
 
                 data = []
                 cols = expected_columns + auto_added_columns
-                # for _, row in df.iterrows():
-                #     category, was_inferred = self.infer_category(
-                #         row, existing_categories
-                #     )
-                #     row["Category"] = category
-                #     row["Inferred_Category"] = 1 if was_inferred else 0
-                #     row["file_id"] = file_record_id
-                #     row_data = tuple(row[col] for col in cols)
-                #     data.append(row_data)
 
-                df = self.infer_categories(df, categories)
+                df = self.infer_categories(df, existing_categories)
                 df["file_id"] = file_record_id
                 data = df[cols].to_records(index=False).tolist()
                 logger.debug("create_data_from_csv: data to insert: %s", data)
