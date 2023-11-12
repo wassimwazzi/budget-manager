@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 import logging
 import openai
 from transformers import pipeline
+from thefuzz import fuzz, process
 
 logger = logging.getLogger("main").getChild(__name__)
 
@@ -131,3 +132,21 @@ class SimpleClassifier(TextClassifier):
         predicted_labels = [r["labels"][0] for r in result]
         logger.info("Simple Predicted labels: %s", predicted_labels)
         return predicted_labels
+
+
+def fuzzy_search(text, labels, threshold=85, scorer=fuzz.partial_token_set_ratio):
+    """
+    Given a text and a list of labels, find the label that best matches the text
+    """
+    if not labels:
+        logger.warning("No labels provided for %s, returning None", text)
+        return None
+
+    logger.info("Fuzzy Predicting label for %s", text)
+    logger.debug("Fuzzy Labels: %s", labels)
+    best_label, best_score = process.extractOne(text, labels, scorer=scorer)
+    if best_score < threshold:
+        logger.info("Fuzzy score is below threshold: %s", best_score)
+        return None
+    logger.info("Fuzzy Predicted label: %s", best_label)
+    return best_label

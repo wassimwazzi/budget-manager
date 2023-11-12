@@ -5,6 +5,7 @@ import traceback
 import logging
 from abc import ABC, abstractmethod
 from sqlite3 import Error
+from thefuzz import fuzz
 import pandas as pd
 from src.form.fields import (
     FormField,
@@ -16,7 +17,7 @@ from src.form.fields import (
     CheckBoxField,
 )
 from src.db.dbmanager import DBManager
-from src.tools.text_classifier import GPTClassifier, SimpleClassifier
+from src.tools.text_classifier import SimpleClassifier, fuzzy_search
 
 
 def confirm_selection(func):
@@ -366,47 +367,90 @@ class TransactionsCsvForm(EditForm):
         """
         Auto fill the category column when missing.
         If the category is already in the db, use that
-        If the code is the same as a previous transaction, use that category
+        If the code is the same as a previous transaction (fuzzy search), use that category
         Otherwise, use NLP to infer category
         """
-        descriptions_to_infer = {}
-        df["Inferred_Category"] = 0  # 0 = not inferred, 1 = inferred
-        for i, row in df.iterrows():
+        prev_transactions = self.db.select(
+            """
+                SELECT description, code, category FROM transactions
+                WHERE code IS NOT NULL OR description IS NOT NULL
+            """,
+            [],
+        )
+        # add was inferred column
+        df["Inferred_Category"] = False
+        prev_codes = {row[1]: row[2] for row in prev_transactions if row[1]}
+        prev_descriptions = {row[0]: row[2] for row in prev_transactions if row[0]}
+        for _, row in df.iterrows():
+            logger.debug("Infering category for\n %s", row)
             if row["Category"] in categories:
-                # already correct, do nothing
-                row["Inferred_Category"] = 0
+                logger.debug(
+                    "Using existing category %s for row",
+                    row["Category"],
+                )
                 continue
             code = row["Code"]
-            # if previous transaction has same code, use that category
-            prev_category = self.db.select(
-                """
-                    SELECT category FROM transactions
-                    WHERE code = ? AND category != 'Other'
-                    ORDER BY date DESC
-                    LIMIT 1
-                """,
-                [code],
-            )
-            if prev_category:
-                # use previous category
-                row["Inferred_Category"] = 1
-                row["Category"] = prev_category[0][0]
-            elif not row["Description"]:
-                # No information to infer category, use default
-                row["Inferred_Category"] = 0
+            description = row["Description"]
+            if not code and not description:
+                logger.debug(
+                    "Using default category Other as no description or code. %s", row
+                )
                 row["Category"] = "Other"
-            else:
-                row["Inferred_Category"] = 1
-                descriptions_to_infer[i] = row["Description"]
-        # batch process rows to infer
-        logger.debug("%s descriptions to infer", len(descriptions_to_infer))
-        descriptions = list(descriptions_to_infer.values())
-        results = self.text_classifier.predict_batch(descriptions, categories)
-        for i, row in df.iterrows():
-            if i in descriptions_to_infer:
-                result = results.pop(0)
-                logger.debug("Inferred category for %s: %s", row["Description"], result)
+                row["Inferred_Category"] = True
+                continue
+
+            if code:
+                # if previous transaction has same code, use that category
+                prev_code = fuzzy_search(
+                    code, prev_codes.keys(), scorer=fuzz.partial_token_set_ratio
+                )
+                if prev_code:
+                    prev_category = prev_codes[prev_code]
+                    logger.debug(
+                        """Found previous transaction %s with similar code to %s.
+                        Using previous category: %s""",
+                        prev_code,
+                        code,
+                        prev_category,
+                    )
+                    row["Category"] = prev_category
+                    row["Inferred_Category"] = True
+                    continue
+
+            if description:
+                # if previous transaction has same description, use that category
+                prev_description = fuzzy_search(
+                    description,
+                    prev_descriptions.keys(),
+                    scorer=fuzz.partial_token_sort_ratio,
+                )
+                if prev_description:
+                    prev_category = prev_descriptions[prev_description]
+                    logger.debug(
+                        """Found previous transaction %s with similar description to %s.
+                        Using previous category: %s""",
+                        prev_description,
+                        description,
+                        prev_category,
+                    )
+                    row["Category"] = prev_category
+                    row["Inferred_Category"] = True
+                    continue
+
+                # if no previous transaction has same description, use NLP
+                result = self.text_classifier.predict(description, categories)
+                logger.debug(
+                    "Inferred category using NLP for %s: %s", description, result
+                )
                 row["Category"] = result
+                row["Inferred_Category"] = True
+            else:
+                logger.debug(
+                    "Using default category Other as no description was given and couldn't match code. %s",
+                    row,
+                )
+                row["Category"] = "Other"
+                row["Inferred_Category"] = True
         return df
 
     def update_file_status(self, id, status, message):
@@ -500,17 +544,21 @@ class TransactionsCsvForm(EditForm):
 
                 data = []
                 cols = expected_columns + auto_added_columns
-                for _, row in df.iterrows():
-                    category, was_inferred = self.infer_category(
-                        row, existing_categories
-                    )
-                    row["Category"] = category
-                    row["Inferred_Category"] = 1 if was_inferred else 0
-                    row["file_id"] = file_record_id
-                    row_data = tuple(row[col] for col in cols)
-                    data.append(row_data)
+                # for _, row in df.iterrows():
+                #     category, was_inferred = self.infer_category(
+                #         row, existing_categories
+                #     )
+                #     row["Category"] = category
+                #     row["Inferred_Category"] = 1 if was_inferred else 0
+                #     row["file_id"] = file_record_id
+                #     row_data = tuple(row[col] for col in cols)
+                #     data.append(row_data)
 
-                # df = self.infer_categories(df, categories)
+                df = self.infer_categories(df, categories)
+                df["file_id"] = file_record_id
+                data = df[cols].to_records(index=False).tolist()
+                logger.debug("create_data_from_csv: data to insert: %s", data)
+
                 # TODO: make this a transaction
                 self.db.insert_many(
                     f"""
