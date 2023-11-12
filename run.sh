@@ -66,7 +66,7 @@ echo "Installing dependencies"
 pip3 install -r requirements.txt
 
 # Check if config file exists
-if [ ! -f "$HOME/budget-manager/env.prod" ]
+if [ ! -f "$HOME/budget-manager/.env.prod" ]
 then
     echo "Creating env file"
     touch .env.prod
