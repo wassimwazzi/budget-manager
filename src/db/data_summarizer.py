@@ -92,8 +92,8 @@ def get_budget_summary_df(month, cols=None):
             WITH BUDGETSINCEDATE AS (
                 SELECT c.CATEGORY, COALESCE(b.amount, 0) AS AMOUNT
                 FROM CATEGORIES c
-                LEFT OUTER JOIN Budgets b ON b.category = c.category AND c.INCOME = 0
-                WHERE (
+                LEFT OUTER JOIN Budgets b ON b.category = c.category
+                WHERE c.INCOME = 0 AND (
                     b.start_date IS NULL
                     OR b.start_date = (
                         SELECT MAX(b2.start_date)
@@ -101,7 +101,7 @@ def get_budget_summary_df(month, cols=None):
                         WHERE b2.start_date <= '{start_date}'
                         AND b2.category = c.category
                     )
-    )
+                )
             ),
 
             TRANSACTIONSBUDGET AS (
