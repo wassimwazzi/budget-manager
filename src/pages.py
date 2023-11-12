@@ -35,10 +35,10 @@ class EditableTable(tk.Frame):
         parent,
         get_data_func,
         edit_form_cls,
+        *args,
         primary_key="id",
         extra_callback=None,
         call_on_udpate=None,
-        *args,
         **kwargs,
     ):
         super().__init__(parent, *args, **kwargs)

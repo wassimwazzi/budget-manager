@@ -17,7 +17,7 @@ from src.form.fields import (
     CheckBoxField,
 )
 from src.db.dbmanager import DBManager
-from src.tools.text_classifier import SimpleClassifier, fuzzy_search
+from src.tools.inference import infer_categories
 
 
 def confirm_selection(func):
@@ -92,7 +92,7 @@ class ABForm(ABC):
         input_row_offset = 1
         input_row_elements = 2
         for i, button in enumerate(self.action_buttons):
-            columnspan = 3 // len(self.action_buttons)
+            columnspan = max(3 // len(self.action_buttons), 1)
             button.grid(
                 row=len(self.form_fields) * input_row_elements
                 + input_row_offset
@@ -309,7 +309,6 @@ class TransactionsCsvForm(EditForm):
             ),
         ]
         self.db = DBManager()
-        self.text_classifier = SimpleClassifier()
         super().__init__(
             self.form,
             self.form_fields,
@@ -318,148 +317,6 @@ class TransactionsCsvForm(EditForm):
             action_buttons=self.action_buttons,
         )
         super().create_form()
-
-    def infer_category(self, row, categories):
-        if not row["Description"] and not row["Code"]:
-            logger.debug(
-                "Using default category Other as no description or code. %s", row
-            )
-            return ("Other", True)
-
-        if row["Category"] in categories:
-            logger.debug(
-                "Using existing category for %s: %s",
-                row["Description"],
-                row["Category"],
-            )
-            return (row["Category"], False)
-        code = row["Code"]
-        if code:
-            # if previous transaction has same code, use that category
-            prev_category = self.db.select(
-                """
-                    SELECT category FROM transactions
-                    WHERE code = ? AND category != 'Other'
-                    ORDER BY date DESC
-                    LIMIT 1
-                """,
-                [code],
-            )
-            if prev_category:
-                logger.debug(
-                    """Found previoius transaction with same code %s.
-                    Using previous category: %s""",
-                    row["Code"],
-                    prev_category[0][0],
-                )
-                return (prev_category[0][0], True)
-
-        if not row["Description"]:
-            logger.debug(
-                "Using default category Other as no description was given. %s", row
-            )
-            return ("Other", False)
-        result = self.text_classifier.predict(row["Description"], categories)
-        logger.debug("Inferred category for %s: %s", row["Description"], result)
-        return (result, True)
-
-    def infer_categories(self, df, categories):
-        """
-        Auto fill the category column when missing.
-        If the category is already in the db, use that
-        If the code is the same as a previous transaction (fuzzy search), use that category
-        Otherwise, use NLP to infer category
-        """
-        prev_transactions = self.db.select(
-            """
-                SELECT description, code, category FROM transactions
-                WHERE code IS NOT NULL OR description IS NOT NULL
-            """,
-            [],
-        )
-        new_categories = []
-        inferred_categories = []
-        prev_codes = {row[1]: row[2] for row in prev_transactions if row[1]}
-        prev_descriptions = {row[0]: row[2] for row in prev_transactions if row[0]}
-        for _, row in df.iterrows():
-            logger.debug("Infering category for\n %s", row)
-            if row["Category"] in categories:
-                logger.debug(
-                    "Using existing category %s for row",
-                    row["Category"],
-                )
-                new_categories.append(row["Category"])
-                inferred_categories.append(False)
-                continue
-            code = row["Code"]
-            description = row["Description"]
-            if not code and not description:
-                logger.debug(
-                    "Using default category Other as no description or code. %s", row
-                )
-                new_categories.append("Other")
-                inferred_categories.append(True)
-                continue
-
-            if code:
-                # if previous transaction has same code, use that category
-                prev_code = fuzzy_search(
-                    code, prev_codes.keys(), scorer=fuzz.token_set_ratio
-                )
-                if prev_code:
-                    prev_category = prev_codes[prev_code]
-                    logger.debug(
-                        """Found previous transaction %s with similar code to %s.
-                        Using previous category: %s""",
-                        prev_code,
-                        code,
-                        prev_category,
-                    )
-                    new_categories.append(prev_category)
-                    inferred_categories.append(True)
-                    continue
-
-            if description:
-                # if previous transaction has same description, use that category
-                prev_description = fuzzy_search(
-                    description,
-                    prev_descriptions.keys(),
-                    scorer=fuzz.token_sort_ratio,
-                )
-                if prev_description:
-                    prev_category = prev_descriptions[prev_description]
-                    logger.debug(
-                        """Found previous transaction %s with similar description to %s.
-                        Using previous category: %s""",
-                        prev_description,
-                        description,
-                        prev_category,
-                    )
-                    new_categories.append(prev_category)
-                    inferred_categories.append(True)
-                    continue
-
-                # if no previous transaction has same description, use NLP
-                result = self.text_classifier.predict(description, categories)
-                logger.debug(
-                    "Inferred category using NLP for %s: %s", description, result
-                )
-                new_categories.append(result)
-                inferred_categories.append(True)
-                # add to previous transactions
-                prev_descriptions[description] = result
-                if code:
-                    prev_codes[code] = result
-            else:
-                logger.debug(
-                    "Using default category Other as no description was given and couldn't match code. %s",
-                    row,
-                )
-                new_categories.append("Other")
-                inferred_categories.append(True)
-        df["Inferred_Category"] = inferred_categories
-        df["Category"] = new_categories
-        return df
 
     def update_file_status(self, id, status, message):
         self.db.update(
@@ -553,7 +410,7 @@ class TransactionsCsvForm(EditForm):
                 data = []
                 cols = expected_columns + auto_added_columns
 
-                df = self.infer_categories(df, existing_categories)
+                df = infer_categories(df, existing_categories, self.db)
                 df["file_id"] = file_record_id
                 data = df[cols].to_records(index=False).tolist()
                 logger.debug("create_data_from_csv: data to insert: %s", data)
@@ -680,12 +537,43 @@ class EditTransactionForm(EditForm):
                 "category", True, self.categories, self.form, display_name="Category"
             ),
         ]
+        action_buttons = [
+            tk.Button(
+                self.form,
+                text="Update",
+                command=self.submit,
+                font=("Arial", 15),
+                fg="dark goldenrod",
+            ),
+            tk.Button(
+                self.form,
+                text="Delete",
+                command=self.delete,
+                font=("Arial", 15),
+                fg="red",
+            ),
+            tk.Button(
+                self.form,
+                text="New",
+                command=self.new,
+                font=("Arial", 15),
+                fg="dark green",
+            ),
+            tk.Button(
+                self.form,
+                text="Re-infer Categories",
+                command=self.run_inference,
+                font=("Arial", 15),
+                fg="dark green",
+            ),
+        ]
         self.transaction_id = transaction_id
         super().__init__(
             self.form,
             self.form_fields,
             "Transactions",
             transaction_id,
+            action_buttons=action_buttons,
         )
 
     def on_success(self) -> (bool, str):
@@ -760,6 +648,52 @@ class EditTransactionForm(EditForm):
             fg=ABForm.SUCCESS_COLOR,
         )
         return (True, "Successfully added transaction " + transaction_descriptor)
+
+    def run_inference(self):
+        logger.debug("Re running inference")
+        # select all transactions with inferred_category = 1 and category = 'Other'
+        transactions = self.db.select(
+            """
+                SELECT id, description, code, category FROM transactions
+                WHERE inferred_category = 1 AND category = 'Other'
+            """,
+            [],
+        )
+        transactions_df = pd.DataFrame(
+            transactions, columns=["id", "Description", "Code", "Category"]
+        )
+        transactions_df["Category"] = ""
+
+        # infer categories
+        categories = [
+            category[0]
+            for category in self.db.select(
+                "SELECT category FROM categories WHERE category != 'Other' ", []
+            )
+        ]
+        # infer_categories modifies the dataframe in place
+        transactions_df = infer_categories(transactions_df, categories, self.db)
+
+        # update transactions
+        for _, row in transactions_df.iterrows():
+            try:
+                self.db.update(
+                    """
+                        UPDATE transactions
+                        SET category = ?
+                        WHERE id = ?
+                    """,
+                    [row["Category"], row["id"]],
+                )
+            except Error as e:
+                logger.error("Error updating transaction: %s", e)
+                # return (False, str(e))
+        super().notify_update()
+        self.form_message_label.config(
+            text="Successfully inferred categories",
+            fg=ABForm.SUCCESS_COLOR,
+        )
+        return (True, "Successfully inferred categories")
 
 
 class AddTransactionForm(ABForm):
