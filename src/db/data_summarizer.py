@@ -242,6 +242,7 @@ def get_monthly_income_df(cols=None):
     df = pd.DataFrame(df, columns=cols or ["month", "total", "category"])
     return df
 
+
 def get_income_vs_expenses_df():
     df = db.select(
         """
@@ -272,6 +273,7 @@ def get_income_vs_expenses_df():
     )
     df = pd.DataFrame(df, columns=["month", "income", "expenses"])
     return df
+
 
 def get_budgets_df(cols=None):
     df = db.select(
@@ -491,6 +493,25 @@ def get_income_vs_expenses_plt():
         label="Expenses",
         marker="o",
     )
+
+    # add lines for the average income and average expenses
+    avg_income = df["income"].mean()
+    avg_expenses = df["expenses"].mean()
+
+    ax.axhline(
+        avg_income,
+        color="green",
+        linestyle="--",
+        label="Average income",
+    )
+
+    ax.axhline(
+        avg_expenses,
+        color="red",
+        linestyle="--",
+        label="Average expenses",
+    )
+
     ax.set_xlabel("Date")
     ax.set_ylabel("Amount")
     ax.set_title("Income vs. Expenses")
