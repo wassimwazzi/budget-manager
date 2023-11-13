@@ -106,7 +106,8 @@ class ABForm(ABC):
     def set_form_input_layout(self, i, form_field):
         self.set_form_input_vertical(i, form_field)
 
-    def submit(self):
+    def submit(self, callback=None):
+        # submit the form. should be called for all actions that need to validate the form
         is_success = True
         self.form_message_label.config(text="")
         for i, form_field in enumerate(self.form_fields):
@@ -128,7 +129,8 @@ class ABForm(ABC):
                 self.error_labels[i].config(text="")
 
         if is_success:
-            success, message = self.on_success()
+            callback = callback or self.on_success
+            success, message = callback()
             if success:
                 # self.clear_form()
                 self.form_message_label.config(text=message, fg=ABForm.SUCCESS_COLOR)
@@ -218,7 +220,7 @@ class EditForm(ABForm):
                 tk.Button(
                     form,
                     text="Update",
-                    command=self.submit,
+                    command=lambda: self.submit(self.update),
                     font=("Arial", 15),
                     fg="dark goldenrod",
                 ),
@@ -232,7 +234,7 @@ class EditForm(ABForm):
                 tk.Button(
                     form,
                     text="New",
-                    command=self.new,
+                    command=lambda: self.submit(self.new),
                     font=("Arial", 15),
                     fg="dark green",
                 ),
@@ -259,6 +261,13 @@ class EditForm(ABForm):
     @abstractmethod
     def new(self):
         pass
+
+    @abstractmethod
+    def update(self):
+        pass
+
+    def on_success(self) -> (bool, str):
+        return (False, "Not implemented")
 
     def register_listener(self, listener):
         self.listeners.append(listener)
@@ -296,7 +305,7 @@ class TransactionsCsvForm(EditForm):
             tk.Button(
                 self.form,
                 text="Submit",
-                command=super().submit,
+                command=self.submit,
                 font=("Arial", 15),
                 fg="dark green",
             ),
@@ -486,6 +495,8 @@ class TransactionsCsvForm(EditForm):
     def new(self):
         pass
 
+    def update(self):
+        pass
 
 class GenerateMonthlySummaryForm(ABForm):
     def __init__(self, master: tk.Tk):
@@ -541,7 +552,7 @@ class EditTransactionForm(EditForm):
             tk.Button(
                 self.form,
                 text="Update",
-                command=self.submit,
+                command=lambda: self.submit(self.update),
                 font=("Arial", 15),
                 fg="dark goldenrod",
             ),
@@ -555,7 +566,7 @@ class EditTransactionForm(EditForm):
             tk.Button(
                 self.form,
                 text="New",
-                command=self.new,
+                command=lambda: self.submit(self.new),
                 font=("Arial", 15),
                 fg="dark green",
             ),
@@ -576,7 +587,7 @@ class EditTransactionForm(EditForm):
             action_buttons=action_buttons,
         )
 
-    def on_success(self) -> (bool, str):
+    def update(self) -> (bool, str):
         if not self.transaction_id:
             return (False, "Select a row first")
         # Data is valid, proceed with insertion
@@ -799,7 +810,7 @@ class EditBudgetForm(EditForm):
             budget_id,
         )
 
-    def on_success(self) -> (bool, str):
+    def update(self) -> (bool, str):
         if not self.budget_id:
             return (False, "Selct a row first")
         # Data is valid, proceed with insertion
@@ -939,7 +950,7 @@ class EditCategoryForm(EditForm):
             category_name,
         )
 
-    def on_success(self) -> (bool, str):
+    def update(self) -> (bool, str):
         if not self.category_name:
             return (False, "Selct a row first")
         # Data is valid, proceed with insertion

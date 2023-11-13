@@ -113,6 +113,8 @@ class DateField(FormField):
             "mm": "%M",
             "ss": "%S",
         }
+        if len(value) != len(self.date_format):
+            return (False, f"Invalid date format, must be {self.date_format}")
         try:
             strptime_format = "-".join(
                 format_mapping.get(token, token)
