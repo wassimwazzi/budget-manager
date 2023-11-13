@@ -413,8 +413,11 @@ class Home(ABPage):
 
 
 class Transactions(ABPage):
-    def setup(self):
+    def __init__(self, parent):
+        super().__init__(parent)
         self.plots_frame = None
+
+    def setup(self):
         table_frame = EditableTable(
             self.frame,
             get_transactions_df,
@@ -435,9 +438,11 @@ class Transactions(ABPage):
         total_earnt_label.pack(side="bottom", pady=10)
 
     def show_plots(self, data, frame):
+        self.clear_figures()
         self.show_total_spent(data, frame)
         if self.plots_frame:
             self.plots_frame.destroy()
+
         self.plots_frame = tk.Frame(self.frame)
         self.plots_frame.pack(fill="both", expand=True, side="bottom")
         pie_chart_plt = get_spend_per_category_pie_chart_plt()
