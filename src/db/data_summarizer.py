@@ -242,6 +242,36 @@ def get_monthly_income_df(cols=None):
     df = pd.DataFrame(df, columns=cols or ["month", "total", "category"])
     return df
 
+def get_income_vs_expenses_df():
+    df = db.select(
+        """
+            WITH DATES AS (
+                SELECT DISTINCT strftime('%Y-%m', date) AS month
+                FROM TRANSACTIONS
+            ),
+            INCOME AS (
+                SELECT strftime('%Y-%m', date) AS month, SUM(amount) AS income
+                FROM TRANSACTIONS t JOIN CATEGORIES c ON t.CATEGORY = c.CATEGORY
+                WHERE c.INCOME = 1
+                GROUP BY month
+            ),
+            EXPENSES AS (
+                SELECT strftime('%Y-%m', date) AS month, SUM(amount) AS expenses
+                FROM TRANSACTIONS t JOIN CATEGORIES c ON t.CATEGORY = c.CATEGORY
+                WHERE c.INCOME = 0
+                GROUP BY month
+            )
+            SELECT d.month, COALESCE(i.income, 0) AS income, COALESCE(e.expenses, 0) AS expenses
+            FROM DATES d
+            LEFT JOIN INCOME i ON d.month = i.month
+            LEFT JOIN EXPENSES e ON d.month = e.month
+            ORDER BY d.month ASC
+            ;
+        """,
+        [],
+    )
+    df = pd.DataFrame(df, columns=["month", "income", "expenses"])
+    return df
 
 def get_budgets_df(cols=None):
     df = db.select(
@@ -426,6 +456,44 @@ def get_budget_history_plt(category=None):
     ax.set_xlabel("Date")
     ax.set_ylabel("Amount")
     ax.set_title("Budget history")
+    # show legend outside of the plot
+    ax.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
+    plt.tight_layout()  # Automatically adjust subplot parameters to prevent clipping
+    return fig
+
+
+def get_income_vs_expenses_plt():
+    # plot a line for income and a line for expenses
+    # show points on the line
+    # show dates on the x-axis
+    df = get_income_vs_expenses_df()
+    fig, ax = plt.subplots()  # Adjust the figure size as needed
+    fig.patch.set_facecolor(TKINTER_BACKGROUND_COLOR)
+    ax.set_facecolor(TKINTER_BACKGROUND_COLOR)
+
+    dates = df["month"].unique()
+    # convert the dates to datetime objects
+    dates = [datetime.strptime(date, "%Y-%m") for date in dates]
+    # sort the dates from earliest to latest
+    dates.sort()
+    df.sort_values("month", inplace=True, ascending=True)
+    # plot the line for income
+    ax.plot(
+        dates,
+        df["income"],
+        label="Income",
+        marker="o",
+    )
+    # plot the line for expenses
+    ax.plot(
+        dates,
+        df["expenses"],
+        label="Expenses",
+        marker="o",
+    )
+    ax.set_xlabel("Date")
+    ax.set_ylabel("Amount")
+    ax.set_title("Income vs. Expenses")
     # show legend outside of the plot
     ax.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
     plt.tight_layout()  # Automatically adjust subplot parameters to prevent clipping

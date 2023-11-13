@@ -18,7 +18,6 @@ from src.db.data_summarizer import (
     get_transactions_df,
     get_transactions_totals_df,
     get_budget_summary_df,
-    get_monthly_income_df,
     get_budgets_df,
     get_files_df,
     get_categories_df,
@@ -26,6 +25,7 @@ from src.db.data_summarizer import (
     get_spend_per_category_pie_chart_plt,
     get_budget_minus_spend_bar_chart_plt,
     get_budget_history_plt,
+    get_income_vs_expenses_plt,
 )
 
 
@@ -414,19 +414,14 @@ class Home(ABPage):
 
 class Transactions(ABPage):
     def setup(self):
+        self.plots_frame = None
         table_frame = EditableTable(
             self.frame,
             get_transactions_df,
             EditTransactionForm,
-            extra_callback=self.show_total_spent,
+            extra_callback=self.show_plots,
         )
         table_frame.pack(fill="both", expand=True, side="top")
-
-        pie_chart_plt = get_spend_per_category_pie_chart_plt()
-        self.figures.append(pie_chart_plt)
-        canvas = FigureCanvasTkAgg(pie_chart_plt, master=self.frame)
-        canvas.draw()
-        canvas.get_tk_widget().pack(side="bottom", fill="both", expand=True, pady=10)
 
     def show_total_spent(self, data, frame):
         # sum amount where
@@ -438,6 +433,24 @@ class Transactions(ABPage):
         total_earnt_label = tk.Label(frame, text=f"Total money earnt: {total_income}")
         total_spent_label.pack(side="bottom", pady=10)
         total_earnt_label.pack(side="bottom", pady=10)
+
+    def show_plots(self, data, frame):
+        self.show_total_spent(data, frame)
+        if self.plots_frame:
+            self.plots_frame.destroy()
+        self.plots_frame = tk.Frame(self.frame)
+        self.plots_frame.pack(fill="both", expand=True, side="bottom")
+        pie_chart_plt = get_spend_per_category_pie_chart_plt()
+        self.figures.append(pie_chart_plt)
+        canvas = FigureCanvasTkAgg(pie_chart_plt, master=self.plots_frame)
+        canvas.draw()
+        canvas.get_tk_widget().pack(side="top", fill="both", expand=True, pady=10)
+
+        income_vs_expenses_plt = get_income_vs_expenses_plt()
+        self.figures.append(income_vs_expenses_plt)
+        canvas = FigureCanvasTkAgg(income_vs_expenses_plt, master=self.plots_frame)
+        canvas.draw()
+        canvas.get_tk_widget().pack(side="bottom", fill="both", expand=True, pady=10)
 
 
 class Budget(ABPage):
