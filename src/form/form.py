@@ -666,7 +666,7 @@ class EditTransactionForm(EditForm):
         transactions = self.db.select(
             """
                 SELECT id, description, code, category FROM transactions
-                WHERE inferred_category = 1 AND category = 'Other'
+                WHERE inferred_category = 1
             """,
             [],
         )
