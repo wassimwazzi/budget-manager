@@ -483,6 +483,7 @@ def get_income_vs_expenses_plt():
     ax.plot(
         dates,
         df["income"],
+        color="green",
         label="Income",
         marker="o",
     )
@@ -490,6 +491,7 @@ def get_income_vs_expenses_plt():
     ax.plot(
         dates,
         df["expenses"],
+        color="red",
         label="Expenses",
         marker="o",
     )
