@@ -12,18 +12,30 @@ def infer_categories(df, categories, db):
     If the code is the same as a previous transaction (fuzzy search), use that category
     Otherwise, use NLP to infer category
     """
-    prev_transactions = db.select(
+
+    prev_inferred_transactions = db.select(
         """
             SELECT description, code, category FROM transactions
             WHERE (code IS NOT NULL OR description IS NOT NULL)
             AND category != 'Other'
+            AND inferred_category = 0
+        """,
+        [],
+    )
+    prev_non_inferred_transactions = db.select(
+        """
+            SELECT description, code, category FROM transactions
+            WHERE (code IS NOT NULL OR description IS NOT NULL)
+            AND inferred_category = 0
         """,
         [],
     )
     new_categories = []
     inferred_categories = []
-    prev_codes = {row[1]: row[2] for row in prev_transactions if row[1]}
-    prev_descriptions = {row[0]: row[2] for row in prev_transactions if row[0]}
+    prev_inferred_codes = {row[1]: row[2] for row in prev_inferred_transactions if row[1]}
+    prev_inferred_descriptions = {row[0]: row[2] for row in prev_inferred_transactions if row[0]}
+    prev_non_inferred_codes = {row[1]: row[2] for row in prev_non_inferred_transactions if row[1]}
+    prev_non_inferred_descriptions = {row[0]: row[2] for row in prev_non_inferred_transactions if row[0]}
     for _, row in df.iterrows():
         logger.debug("Infering category for\n %s", row)
         if row["Category"] in categories:
@@ -45,14 +57,30 @@ def infer_categories(df, categories, db):
             continue
 
         if code:
-            # if previous transaction has same code, use that category
+            # Prioritise non-inferred transactions
             prev_code = fuzzy_search(
-                code, prev_codes.keys(), scorer=fuzz.token_set_ratio
+                code, prev_non_inferred_codes.keys(), scorer=fuzz.token_set_ratio
             )
             if prev_code:
-                prev_category = prev_codes[prev_code]
+                prev_category = prev_non_inferred_codes[prev_code]
                 logger.debug(
-                    """Found previous transaction %s with similar code to %s.
+                    """Found previous non inferred transaction %s with similar code to %s.
+                    Using previous category: %s""",
+                    prev_code,
+                    code,
+                    prev_category,
+                )
+                new_categories.append(prev_category)
+                inferred_categories.append(True)
+                continue
+            # if previous transaction has same code, use that category
+            prev_code = fuzzy_search(
+                code, prev_inferred_codes.keys(), scorer=fuzz.token_set_ratio
+            )
+            if prev_code:
+                prev_category = prev_inferred_codes[prev_code]
+                logger.debug(
+                    """Found previous inferred transaction %s with similar code to %s.
                     Using previous category: %s""",
                     prev_code,
                     code,
@@ -63,16 +91,34 @@ def infer_categories(df, categories, db):
                 continue
 
         if description:
-            # if previous transaction has same description, use that category
+            # Prioritise non-inferred transactions
             prev_description = fuzzy_search(
                 description,
-                prev_descriptions.keys(),
+                prev_non_inferred_descriptions.keys(),
                 scorer=fuzz.token_sort_ratio,
             )
             if prev_description:
-                prev_category = prev_descriptions[prev_description]
+                prev_category = prev_non_inferred_descriptions[prev_description]
                 logger.debug(
-                    """Found previous transaction %s with similar description to %s.
+                    """Found previous non inferred transaction %s with similar description to %s.
+                    Using previous category: %s""",
+                    prev_description,
+                    description,
+                    prev_category,
+                )
+                new_categories.append(prev_category)
+                inferred_categories.append(True)
+                continue
+            # if previous transaction has same description, use that category
+            prev_description = fuzzy_search(
+                description,
+                prev_inferred_descriptions.keys(),
+                scorer=fuzz.token_sort_ratio,
+            )
+            if prev_description:
+                prev_category = prev_inferred_descriptions[prev_description]
+                logger.debug(
+                    """Found previous inferred transaction %s with similar description to %s.
                     Using previous category: %s""",
                     prev_description,
                     description,
@@ -88,9 +134,9 @@ def infer_categories(df, categories, db):
             new_categories.append(result)
             inferred_categories.append(True)
             # add to previous transactions
-            prev_descriptions[description] = result
+            prev_inferred_descriptions[description] = result
             if code:
-                prev_codes[code] = result
+                prev_inferred_codes[code] = result
         else:
             logger.debug(
                 "Using default category Other as no description was given and couldn't match code. %s",

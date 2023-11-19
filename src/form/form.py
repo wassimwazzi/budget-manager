@@ -662,7 +662,7 @@ class EditTransactionForm(EditForm):
 
     def run_inference(self):
         logger.debug("Re running inference")
-        # select all transactions with inferred_category = 1 and category = 'Other'
+        # select all transactions with inferred_category = 1
         transactions = self.db.select(
             """
                 SELECT id, description, code, category FROM transactions
