@@ -29,7 +29,7 @@ Set a budget for each category. If multiple budgets exist for the same category,
 ## Setup for dev
 - Install python 3.11 or higher. Important for mac to make sure that you are using compatible version of tkinter to avoid this error
 `DEPRECATION WARNING: The system version of Tk is deprecated and may be removed in a future release. Please don't rely on it. Set TK_SILENCE_DEPRECATION=1 to suppress this warning.`
-- Setup a virtual environment: `python3.10 -m venv venv`
+- Setup a virtual environment: `python3.11 -m venv venv`
 - Activate virtual environment: `. venv/bin/activate`
 - `pip install -r requirements.txt`
 - May need to run `brew install python-tk`
